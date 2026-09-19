@@ -142,3 +142,12 @@ test('empty incident cannot cause a blanket IP block',async()=>{
   assert.match(result.trace[1].result.reasons[0],/without request evidence/);
   assert.equal(result.plan.kind,'observe');
 });
+
+test('removed CVE tool is not advertised and cannot call a lookup',async()=>{
+  let called=false;
+  const model=scripted([{tool:'search_cve',query:'select'},inspect,propose(plan)]);
+  const result=await investigate(brief,model,{searchCVE:()=>{called=true;return new Promise(()=>{});}});
+  assert.equal(called,false);
+  assert.doesNotMatch(model.calls[0][0].content,/search_cve/);
+  assert.match(result.trace[0].result.reasons[0],/unknown tool/);
+});

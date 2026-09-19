@@ -17,10 +17,13 @@ type stripping. It is test-only; do not import it from the Worker. Tests use the
 real Commander validator and signature extraction with a scripted mock model.
 They do not call Cloudflare, deploy rules, or prove model quality.
 
-The reviewed suite contains 32 tests. Additional regression coverage includes
+The Analyst suite contains 33 tests. Additional regression coverage includes
 two-pass decoding parity, malformed fields, overlapping regex repetitions,
 duplicate tool reads, oversized object responses, invalid loop options, empty
 incidents, and diagnostic trace retention on provider failure.
+The fabricated CVE lookup was removed; a regression test confirms search_cve is
+not advertised or dispatched. See ../SHIELD_TESTING.md for the combined 48-test
+Shield and Analyst command and required upstream configuration.
 
 ## Contract
 

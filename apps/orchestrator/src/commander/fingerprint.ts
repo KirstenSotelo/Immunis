@@ -42,6 +42,7 @@ const DETECTORS: Detector[] = [
 		severity: 85,
 		patterns: [
 			{ name: 'union select', re: /\bunion\b[\s\S]{0,40}?\bselect\b/i },
+			{ name: 'quoted SQL comment', re: /['"`]\s*(?:--|#|\/\*)/ },
 			{ name: 'tautology', re: /(\bor\b|\band\b)\s*['"`]?\s*(\d+)\s*=\s*\2\b/i },
 			{ name: 'quoted tautology', re: /['"`]\s*(or|and)\s*['"`]?[^'"`]{0,10}['"`]?\s*=\s*['"`]?[^'"`]{0,10}['"`]?\s*(--|#|\/\*)/i },
 			{ name: 'time-based blind', re: /\b(sleep|pg_sleep|waitfor\s+delay|benchmark)\s*\(/i },

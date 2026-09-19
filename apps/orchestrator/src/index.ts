@@ -1,6 +1,22 @@
 import type { Env } from './types';
 import { handleCommanderRequest } from './commander/api';
 import { handleAnalysisBatch } from './commander/queue-consumer';
+import { readPatternRules, matchPatternRules, type EdgeBlock } from './commander/mitigation';
+
+// Mirror the two-pass normalization used by the Analyst.
+function decodeEvidence(input: string): string {
+	let value = input;
+	for (let pass = 0; pass < 2; pass++) {
+		try {
+			const next = decodeURIComponent(value.replace(/\+/g, ' '));
+			if (next === value) break;
+			value = next;
+		} catch {
+			break;
+		}
+	}
+	return value;
+}
 
 export type { Env } from './types';
 
@@ -25,14 +41,35 @@ export default {
 		const url = new URL(request.url);
 		const payload = await request.clone().text();
 
+		// Safely decode evidence
+		const decodedUrl = decodeEvidence(request.url);
+		const decodedPayload = decodeEvidence(payload);
+
 		// 1. Check if IP is already blocked in KV
-		const isBlocked = await env.RULES_KV.get(`block_ip_${ip}`);
-		if (isBlocked) {
-			return new Response('403 Forbidden: Exploit neutralized by Edge Agent.', { status: 403 });
+		const ipBlockRaw = await env.RULES_KV.get(`block_ip_${ip}`);
+		if (ipBlockRaw) {
+			try {
+				const block = JSON.parse(ipBlockRaw) as EdgeBlock;
+				if (block.action === 'block') {
+					return new Response('403 Forbidden: Exploit neutralized by Edge Agent.', { status: 403 });
+				}
+			} catch {
+				// Fallback if parsing fails
+				return new Response('403 Forbidden: Exploit neutralized by Edge Agent.', { status: 403 });
+			}
 		}
 
-		// 2. Simple heuristic for "suspicious" (can be expanded)
-		const isSuspicious = payload.includes('SELECT') || url.search.includes('<script>');
+		// 2. Test against Pattern Rules
+		const rules = await readPatternRules(env, 60); // 60s cache TTL on the edge
+		const matchInput = decodedUrl + '\n' + decodedPayload;
+		const hit = matchPatternRules(rules, matchInput);
+
+		if (hit && hit.action === 'block') {
+			return new Response('403 Forbidden: Pattern exploit neutralized by Edge Agent.', { status: 403 });
+		}
+
+		// 3. Simple heuristic for "suspicious" (can be expanded)
+		const isSuspicious = decodedPayload.includes('SELECT') || decodedUrl.includes('<script>');
 
 		if (isSuspicious) {
 			// Send to background analysis without blocking the main thread
@@ -45,8 +82,13 @@ export default {
 			});
 		}
 
-		// 3. Normal response
-		return new Response('200 OK: System functioning normally.', { status: 200 });
+		// 4. Proxy normal response to Demo Application
+		const demoUpstream = env.DEMO_UPSTREAM || 'https://httpbin.org';
+		const proxyUrl = new URL(url.pathname + url.search, demoUpstream);
+		const proxyRequest = new Request(proxyUrl, request);
+		proxyRequest.headers.set('Host', proxyUrl.host);
+
+		return fetch(proxyRequest);
 	},
 
 	// ==========================================

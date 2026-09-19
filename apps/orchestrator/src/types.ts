@@ -37,6 +37,7 @@ export interface Env {
 	SCORE_HALF_LIFE_MS?: string;
 	INCIDENT_IDLE_TIMEOUT_MS?: string;
 	CAMPAIGN_MIN_IPS?: string;
+	DEMO_UPSTREAM?: string;
 }
 
 // ---------------------------------------------------------------------------

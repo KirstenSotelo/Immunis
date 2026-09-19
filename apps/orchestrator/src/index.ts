@@ -69,7 +69,8 @@ export default {
 		}
 
 		// 3. Simple heuristic for "suspicious" (can be expanded)
-		const isSuspicious = decodedPayload.includes('SELECT') || decodedUrl.includes('<script>');
+		const suspicionRegex = /(?:SELECT|UNION|DROP|<script>|\$\{jndi:|\$gt|\.\.\/)/i;
+		const isSuspicious = suspicionRegex.test(decodedPayload) || suspicionRegex.test(decodedUrl);
 
 		if (isSuspicious) {
 			// Send to background analysis without blocking the main thread

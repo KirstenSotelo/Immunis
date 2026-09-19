@@ -75,3 +75,9 @@ test('expired blocking rule does not block legitimate forwarding',async()=>{
   assert.equal((await handleShieldRequest(new Request('https://shield.invalid/?q=marker'),s.env,s.fetchOrigin)).status,201);
 });
 
+test('own hostname is not scanned: benign login on localhost is clean, loopback in the query is still SSRF',()=>{
+  const benign=classify({ip:'203.0.113.9',url:'http://localhost:8787/login',method:'POST',payload:'username=alice&password=pw',timestamp:0});
+  assert.equal(benign.attackClass,'unknown');
+  const ssrf=classify({ip:'203.0.113.9',url:'http://localhost:8787/fetch?url=http://127.0.0.1:8080/admin',method:'GET',payload:'',timestamp:0});
+  assert.equal(ssrf.attackClass,'ssrf');
+});

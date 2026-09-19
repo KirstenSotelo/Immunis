@@ -166,8 +166,21 @@ export function pathTemplate(rawUrl: string): string {
  * indicators fired — one `<script` could be a blog comment, but `<script` plus
  * `document.cookie` plus an `onerror=` handler is not an accident.
  */
+/**
+ * The attacker-controlled part of a URL. The host is ours, so scanning it makes every
+ * request to `localhost:8787` in local dev look like an SSRF probe.
+ */
+function requestTarget(url: string): string {
+	try {
+		const parsed = new URL(url);
+		return parsed.pathname + parsed.search;
+	} catch {
+		return url; // relative or malformed: scan as-is
+	}
+}
+
 export function classify(event: SuspiciousEvent): Classification {
-	const decodedUrl = safeDecode(event.url ?? '');
+	const decodedUrl = safeDecode(requestTarget(event.url ?? ''));
 	const decodedPayload = safeDecode(event.payload ?? '');
 	const userAgent = event.userAgent ?? event.headers?.['user-agent'] ?? '';
 	// Cap the scan surface so a 1MB body can't stall the isolate on backtracking.

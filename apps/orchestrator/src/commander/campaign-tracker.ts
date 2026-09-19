@@ -265,8 +265,10 @@ export class CampaignTracker extends DurableObject<Env> {
 	}
 
 	override async webSocketClose(ws: WebSocket, code: number, reason: string): Promise<void> {
-		// 1005 means "no status received"; passing it back to close() is a protocol error.
-		ws.close(code === 1005 ? 1000 : code, reason);
+		// 1005 ("no status received"), 1006 ("abnormal closure", e.g. a tab closed or reloaded) and
+		// 1015 (TLS failure) are reserved: they are only ever reported, never sent, and passing
+		// them back to close() throws.
+		ws.close(code === 1005 || code === 1006 || code === 1015 ? 1000 : code, reason);
 	}
 
 	// =======================================================================

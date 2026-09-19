@@ -1,17 +1,18 @@
 'use client';
 
-import { useState, type CSSProperties } from 'react';
-
+import { useState } from 'react';
 import { clock } from '@/lib/format';
 import type { RedTeamAction, RedTeamResponse, RedTeamResult, Verdict } from '@/lib/types';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { AlertCircle, Terminal } from 'lucide-react';
 
-import styles from './dashboard.module.css';
-
-const VERDICT: Record<Verdict, { label: string; color: string }> = {
-  breached: { label: 'breached', color: 'var(--danger)' },
-  blocked: { label: 'blocked', color: 'var(--ok)' },
-  rejected: { label: 'rejected', color: 'var(--info)' },
-  error: { label: 'error', color: 'var(--warn)' },
+const VERDICT: Record<Verdict, { label: string; color: string; variant: any }> = {
+  breached: { label: 'breached', color: 'text-rose-500', variant: 'destructive' },
+  blocked: { label: 'blocked', color: 'text-emerald-500', variant: 'success' },
+  rejected: { label: 'rejected', color: 'text-zinc-400', variant: 'secondary' },
+  error: { label: 'error', color: 'text-amber-500', variant: 'warning' },
 };
 
 interface Props {
@@ -53,51 +54,58 @@ export function RedTeamConsole({ history, knownIps, onResults, onReset }: Props)
   const disabled = busy !== null;
 
   return (
-    <section className={styles.panel} aria-label="Red team console">
-      <div className={styles.panelHead}>
-        <h2 className={styles.panelTitle}>Red team console</h2>
-        <span className={styles.panelMeta}>→ Shield :8787 → Origin :3001</span>
+    <div className="flex flex-col gap-4">
+      <div className="flex items-center gap-2 text-xs text-zinc-500 font-mono mb-2">
+        <Terminal className="h-3 w-3" />
+        <span>→ Shield :8787 → Origin :3001</span>
       </div>
 
-      <div className={styles.btnRow}>
-        <button className={styles.btn} disabled={disabled} onClick={() => run('benign')}>
+      <div className="grid grid-cols-3 gap-2">
+        <Button variant="secondary" size="sm" disabled={disabled} onClick={() => run('benign')} className="text-xs">
           {busy === 'benign' ? 'Sending…' : 'Benign login'}
-        </button>
-        <button className={`${styles.btn} ${styles.btnAttack}`} disabled={disabled} onClick={() => run('attack')}>
+        </Button>
+        <Button variant="destructive" size="sm" disabled={disabled} onClick={() => run('attack')} className="text-xs">
           {busy === 'attack' ? 'Sending…' : 'SQLi attack'}
-        </button>
-        <button className={`${styles.btn} ${styles.btnAttack}`} disabled={disabled} onClick={() => run('burst')}>
+        </Button>
+        <Button variant="outline" size="sm" disabled={disabled} onClick={() => run('burst')} className="text-xs border-rose-900/50 hover:bg-rose-950 hover:text-rose-400">
           {busy === 'burst' ? 'Firing…' : 'Burst ×3'}
-        </button>
+        </Button>
       </div>
 
-      <p className={styles.consoleHint}>
+      <div className="text-[11px] text-zinc-500 leading-relaxed bg-zinc-900/50 p-3 rounded-md border border-zinc-800">
         The Commander opens an incident after 3 hostile requests in 60s, so use <strong>Burst ×3</strong>, wait a couple of seconds for the queue to drain,
         then fire <strong>SQLi attack</strong> again to see the edge block it.{' '}
-        <button className={`${styles.btn} ${styles.btnGhost}`} style={{ padding: '3px 9px', fontSize: 12 }} disabled={disabled} onClick={() => run('reset')}>
+        <button className="underline hover:text-zinc-300 ml-1" disabled={disabled} onClick={() => run('reset')}>
           {busy === 'reset' ? 'Resetting…' : 'Reset demo'}
         </button>
-      </p>
+      </div>
 
-      {error && <p className={styles.error}>{error}</p>}
+      {error && (
+        <div className="flex items-center gap-2 text-xs text-rose-400 bg-rose-950/40 p-2 rounded border border-rose-900/50">
+          <AlertCircle className="h-4 w-4" />
+          {error}
+        </div>
+      )}
 
       {history.length > 0 && (
-        <ul className={styles.results}>
-          {history.slice(0, 5).map((r, i) => (
-            <li key={`${r.at}:${i}`} className={styles.result}>
-              <span className={styles.tag} style={{ '--chip': VERDICT[r.verdict].color } as CSSProperties}>
-                {r.status || '—'} {VERDICT[r.verdict].label}
-              </span>
-              <span className={styles.resultNote}>
-                {r.label} · {r.note}
-              </span>
-              <span className={styles.resultMs}>
-                {clock(r.at)} · {r.ms}ms
-              </span>
-            </li>
-          ))}
-        </ul>
+        <ScrollArea className="h-40 border border-zinc-800 rounded-md bg-zinc-950 p-2">
+          <ul className="flex flex-col gap-1">
+            {history.slice(0, 5).map((r, i) => (
+              <li key={`${r.at}:${i}`} className="flex items-start gap-2 p-2 hover:bg-zinc-900/50 rounded font-mono text-[10px]">
+                <Badge variant={VERDICT[r.verdict].variant} className="h-4 px-1 rounded-sm shrink-0 uppercase text-[9px]">
+                  {r.status || '—'} {VERDICT[r.verdict].label}
+                </Badge>
+                <span className="flex-1 text-zinc-400 break-words">
+                  {r.label} · <span className="text-zinc-500">{r.note}</span>
+                </span>
+                <span className="shrink-0 text-zinc-600">
+                  {r.ms}ms
+                </span>
+              </li>
+            ))}
+          </ul>
+        </ScrollArea>
       )}
-    </section>
+    </div>
   );
 }

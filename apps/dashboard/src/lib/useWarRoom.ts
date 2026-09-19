@@ -6,7 +6,7 @@ import { initialState, reducer } from './state';
 import type { FeedEvent, IncidentRow, PatternRule, RedTeamResult } from './types';
 
 /** Orchestrator (Shield + Commander). Inlined at build time — restart `next dev` after changing it. */
-export const ORCHESTRATOR_URL = (process.env.NEXT_PUBLIC_ORCHESTRATOR_URL ?? 'http://localhost:8787').replace(/\/$/, '');
+export const ORCHESTRATOR_URL = (process.env.NEXT_PUBLIC_ORCHESTRATOR_URL ?? 'http://127.0.0.1:8787').replace(/\/$/, '');
 const STREAM_URL = `${ORCHESTRATOR_URL.replace(/^http/, 'ws')}/commander/stream`;
 
 const PING_MS = 20_000;

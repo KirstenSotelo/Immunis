@@ -11,7 +11,7 @@ export const dynamic = 'force-dynamic';
  * no CORS headers, so a cross-origin fetch would just throw "Failed to fetch" and we
  * couldn't tell "blocked at the edge" from "orchestrator is down".
  */
-const ORCHESTRATOR_URL = (process.env.ORCHESTRATOR_URL ?? process.env.NEXT_PUBLIC_ORCHESTRATOR_URL ?? 'http://localhost:8787').replace(/\/$/, '');
+const ORCHESTRATOR_URL = (process.env.ORCHESTRATOR_URL ?? process.env.NEXT_PUBLIC_ORCHESTRATOR_URL ?? 'http://127.0.0.1:8787').replace(/\/$/, '');
 
 const BENIGN = { label: 'Benign login', form: { username: 'alice', password: 'correct-horse-battery' } };
 // Numeric tautology + trailing comment: the origin's query becomes `... WHERE username = 'admin' OR 1=1 -- ' AND ...`.

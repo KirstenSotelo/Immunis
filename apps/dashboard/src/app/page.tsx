@@ -45,7 +45,7 @@ export default function WarRoom() {
         <Header connection={state.connection} />
       </div>
 
-      <div className="absolute top-2 right-64 z-50">
+      <div className="absolute top-3 left-1/2 -translate-x-1/2 z-50">
         <Dialog>
           <DialogTrigger asChild>
             <Button variant="outline" size="sm" className="h-8 gap-2 border-zinc-700 bg-zinc-900/50 hover:bg-zinc-800">

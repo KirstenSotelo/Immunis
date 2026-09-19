@@ -1,0 +1,14 @@
+{
+  "name": "red-vs-blue-orchestrator",
+  "version": "1.0.0",
+  "description": "Hack The North - Red vs Blue Agent",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20240320.1",
+    "typescript": "^5.0.4",
+    "wrangler": "^3.0.0"
+  }
+}

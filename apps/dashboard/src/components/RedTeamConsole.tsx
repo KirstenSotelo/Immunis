@@ -99,16 +99,28 @@ export function RedTeamConsole({ history, knownIps, onResults, onReset }: Props)
         {busy === 'botnet' ? 'Spraying…' : 'Botnet ×4 (distributed campaign)'}
       </Button>
 
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={() => { setAutoIterations(0); setAutoRun(true); }}
-        disabled={disabled || autoRun}
-        className="w-full border-violet-900/50 hover:bg-violet-950 hover:text-violet-400 gap-2"
-      >
-        <BrainCircuit className="h-4 w-4" />
-        {autoRun ? `Red agent attacking… (${autoIterations})` : 'Unleash AI (adaptive attacker)'}
-      </Button>
+      <div className="flex gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => { setAutoIterations(0); setAutoRun(true); }}
+          disabled={disabled || autoRun}
+          className="flex-1 border-violet-900/50 hover:bg-violet-950 hover:text-violet-400 gap-2"
+        >
+          <BrainCircuit className="h-4 w-4" />
+          {autoRun ? `Red agent attacking… (${autoIterations})` : 'Unleash AI (adaptive attacker)'}
+        </Button>
+        {autoRun && (
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={() => setAutoRun(false)}
+            className="shrink-0"
+          >
+            Terminate
+          </Button>
+        )}
+      </div>
 
       <div className="text-[11px] text-zinc-500 leading-relaxed bg-zinc-900/50 p-3 rounded-md border border-zinc-800">
         <strong>Burst ×3</strong> then wait ~3s for Blue to synthesize a rule, then <strong>SQLi attack</strong> to see the edge block it.

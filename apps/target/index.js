@@ -66,6 +66,22 @@ app.post('/login', (req, res) => {
 
     console.log('[Origin] Executing query:', query);
 
+    // MOCK VULNERABILITY EXTENSION: Allow non-SQLi attacks to "breach" the app for demo purposes
+    const lowerUser = username.toLowerCase();
+    const isXss = lowerUser.includes('<script') || lowerUser.includes('javascript:') || lowerUser.includes('onerror=');
+    const isRce = lowerUser.includes(';/bin/') || lowerUser.includes('$(cd') || lowerUser.includes('|| cat ') || lowerUser.includes('&&');
+    const isPathTraversal = lowerUser.includes('../') || lowerUser.includes('..\\') || lowerUser.includes('/etc/passwd');
+
+    if (isXss || isRce || isPathTraversal) {
+        console.log(`[Origin] Login SUCCESS via alternative mock exploit vector`);
+        return res.status(200).json({
+            success: true,
+            message: 'Authentication bypassed (mock)',
+            token: 'mock_admin_token_xyz_890',
+            user: { username: 'admin', role: 'admin' }
+        });
+    }
+
     db.get(query, (err, row) => {
         if (err) {
             console.error('[Origin] DB Error:', err.message);

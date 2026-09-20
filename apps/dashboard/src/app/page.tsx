@@ -63,16 +63,16 @@ export default function WarRoom() {
   }, [state.log]);
 
   return (
-    <div className="flex flex-col h-screen bg-zinc-950 text-zinc-100 overflow-hidden">
-      <div className="flex-none">
+    <div className="flex flex-col min-h-screen bg-zinc-950 text-zinc-100">
+      <div className="flex-none sticky top-0 z-50 bg-zinc-950/80 backdrop-blur-md border-b border-zinc-800/80">
         <Header connection={state.connection} analystMs={lastAnalystMs} />
       </div>
 
-      <div className="absolute top-3 left-1/2 -translate-x-1/2 z-50">
+      <div className="fixed bottom-6 right-6 z-50">
         <Dialog>
           <DialogTrigger asChild>
-            <Button variant="outline" size="sm" className="h-8 gap-2 border-zinc-700 bg-zinc-900/50 hover:bg-zinc-800">
-              <Swords className="h-3.5 w-3.5 text-rose-400" />
+            <Button variant="outline" size="sm" className="h-10 px-4 gap-2 border-zinc-700 bg-zinc-900/90 backdrop-blur shadow-xl hover:bg-zinc-800 rounded-full">
+              <Swords className="h-4 w-4 text-rose-400" />
               Red Team Console
             </Button>
           </DialogTrigger>
@@ -96,8 +96,8 @@ export default function WarRoom() {
         </Dialog>
       </div>
 
-      <main className="flex-1 min-h-0 grid grid-cols-12 relative">
-        <div className="col-span-4 h-full relative z-10">
+      <main className="flex-1 grid grid-cols-12 relative p-4 gap-4">
+        <div className="col-span-4 relative z-10">
           <TrafficFeed
             entries={state.log}
             selectedId={selectedEntry?.id || null}
@@ -105,16 +105,16 @@ export default function WarRoom() {
           />
         </div>
 
-        <div className="col-span-5 h-full relative z-10">
+        <div className="col-span-5 relative z-10">
           <PayloadAnalyzer entry={selectedEntry} />
         </div>
 
-        <div className="col-span-3 h-full relative z-10">
+        <div className="col-span-3 relative z-10">
           <ActiveMitigations cards={state.mitigations} now={now} edgeBlocks={edgeBlockCount} campaigns={Object.values(state.campaigns)} />
         </div>
 
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-violet-500/10 rounded-full blur-[120px] pointer-events-none" />
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-emerald-500/5 rounded-full blur-[120px] pointer-events-none" />
+        <div className="fixed top-1/4 left-1/4 w-96 h-96 bg-violet-500/10 rounded-full blur-[120px] pointer-events-none" />
+        <div className="fixed bottom-1/4 right-1/4 w-96 h-96 bg-emerald-500/5 rounded-full blur-[120px] pointer-events-none" />
       </main>
     </div>
   );

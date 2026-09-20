@@ -20,21 +20,18 @@ export function TrafficFeed({ entries, selectedId, onSelect }: TrafficFeedProps)
 
   useEffect(() => {
     if (scrollRef.current) {
-      const scrollable = scrollRef.current.querySelector('[data-radix-scroll-area-viewport]')
-      if (scrollable) {
-        scrollable.scrollTop = scrollable.scrollHeight
-      }
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight
     }
   }, [entries])
 
   return (
-    <div className="flex flex-col h-full bg-zinc-950/40 border-r border-zinc-800/80">
+    <div className="flex flex-col bg-zinc-950/40 border border-zinc-800/80 rounded-lg overflow-hidden shadow-lg h-fit">
       <div className="flex items-center justify-between p-4 border-b border-zinc-800/80">
-        <h2 className="text-sm font-semibold text-zinc-200">Live Traffic Feed</h2>
+        <h2 className="text-sm font-semibold text-zinc-200">Live Threat Feed</h2>
         <Badge variant="outline" className="font-mono text-[10px]">{entries.length} events</Badge>
       </div>
       
-      <ScrollArea ref={scrollRef} className="flex-1 p-2">
+      <div ref={scrollRef} className="flex-1 p-2 overflow-y-auto max-h-[80vh] scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
         <div className="flex flex-col gap-1 pb-4">
           <AnimatePresence initial={false}>
             {entries.map((entry) => {
@@ -86,7 +83,7 @@ export function TrafficFeed({ entries, selectedId, onSelect }: TrafficFeedProps)
             })}
           </AnimatePresence>
         </div>
-      </ScrollArea>
+      </div>
     </div>
   )
 }

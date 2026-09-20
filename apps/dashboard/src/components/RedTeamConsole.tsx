@@ -58,10 +58,6 @@ export function RedTeamConsole({ history, knownIps, onResults, onReset }: Props)
 
   useEffect(() => {
     if (!autoRun) return;
-    if (autoIterations >= 5) {
-      setAutoRun(false);
-      return;
-    }
     let active = true;
     const timer = setTimeout(async () => {
       const attackHistory = history
@@ -111,7 +107,7 @@ export function RedTeamConsole({ history, knownIps, onResults, onReset }: Props)
         className="w-full border-violet-900/50 hover:bg-violet-950 hover:text-violet-400 gap-2"
       >
         <BrainCircuit className="h-4 w-4" />
-        {autoRun ? `Red agent attacking… (${autoIterations}/5)` : 'Unleash AI (adaptive attacker)'}
+        {autoRun ? `Red agent attacking… (${autoIterations})` : 'Unleash AI (adaptive attacker)'}
       </Button>
 
       <div className="text-[11px] text-zinc-500 leading-relaxed bg-zinc-900/50 p-3 rounded-md border border-zinc-800">

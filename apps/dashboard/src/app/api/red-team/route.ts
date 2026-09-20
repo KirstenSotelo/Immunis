@@ -125,7 +125,15 @@ export async function POST(request: Request): Promise<NextResponse<RedTeamRespon
         const { thought, payload, source } = await agentRes.json();
         // The autonomous attacker keeps one identity across its mutation ladder, so its
         // blocks and breaches accumulate as a single evolving attacker.
-        const result = await fire({ label: `AI mutation${source === 'scripted' ? ' (offline)' : ''}`, form: { username: payload, password: 'wrong' } }, '203.0.113.50');
+        const result = await fire({ label: 'AI Mutation', form: { username: payload, password: 'wrong' } }, '203.0.113.50');
+
+        // Fire twice more to guarantee we cross the Commander's burst threshold (3 events).
+        // This ensures the Blue AI wakes up and shows its reasoning on the dashboard!
+        await Promise.all([
+          fire({ label: 'AI Mutation 2/3', form: { username: payload, password: 'wrong' } }, '203.0.113.50'),
+          fire({ label: 'AI Mutation 3/3', form: { username: payload, password: 'wrong' } }, '203.0.113.50')
+        ]);
+
         return NextResponse.json({ results: [{ ...result, thought, payload }] });
       } catch (e) {
         return NextResponse.json({ results: [], error: 'Red Agent failed: ' + (e as Error).message }, { status: 500 });

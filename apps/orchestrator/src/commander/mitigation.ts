@@ -69,6 +69,17 @@ export const BENIGN_CORPUS: string[] = [
 	'/blog/2024/03/how-we-scaled-our-database',
 	'query=SELECT your favourite plan from the pricing page',
 	'/api/search?q=union+jack+flag',
+	// Apostrophes and dashes in ordinary prose. A synthesized rule anchored on a quote
+	// next to punctuation looks precise and is not: real customers write like this.
+	"comment=it's -- honestly -- the best thing we've bought",
+	"name=O'Brien&city=Coeur+d'Alene",
+	"search=rock+'n'+roll+vinyl",
+	"feedback=don't stop -- keep the updates coming",
+	// Numeric comparisons and equals signs that a tautology rule must not swallow.
+	'filter=price=100&compare=size=10',
+	'utm_source=newsletter&utm_campaign=spring-2024&ref=partner',
+	'/api/orders?status=open&limit=25&offset=50',
+	"note=Ana's order #1234 -- shipped 2 of 2 items",
 ];
 
 /**

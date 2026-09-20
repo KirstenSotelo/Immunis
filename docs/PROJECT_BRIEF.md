@@ -291,6 +291,48 @@ bundle). If `FeedEvent`, `IngestResult`, `DeployedMitigation`, `CampaignSummary`
 
 ---
 
+## 4a. Demo-hardening changes (2026-09-19, review these)
+
+A second pass turned the loop from a scripted walkthrough into a genuine adversarial demo and removed the
+placeholder UI. All of it works with **no Cloudflare login** (the deterministic paths run when Workers AI is absent).
+
+**Blue (defence):**
+- **Rule synthesis from observed evidence** (`commander/fallback-plan.ts`). The deterministic path no longer just
+  reaches for a fixed per-class signature; it *derives* a rule from the literal that actually tripped the detector,
+  generalising only whitespace (`\s*`), digit runs (`\d+`) and word boundaries (`\b`). So a mutation the engine has
+  never seen (`OR 2=2` after only ever seeing `OR 1=1`) is still caught. Every candidate still passes `validateRule`
+  before deployment; the class signature is now the *fallback's* fallback, and an IP block the last resort.
+- **Distributed-campaign enforcement** (`policy.ts`, `incident-commander.ts`). A distributed campaign is now itself an
+  analysis trigger, and its plan enforces (`block`) even though each botnet address individually only reached
+  `challenge` on its single request. Previously a botnet was detected and then waved through.
+- **Real reasoning surfaced** (`types.ts: AnalystReport`/`AnalystStep`, `analyst-client.ts`, `analyst/index.ts`). Both
+  the LLM tool loop and the deterministic synthesiser emit a step-by-step trace (inspect → synthesise → validate),
+  carried on the `ingest` feed event. The dashboard renders this verbatim instead of a canned animation.
+- **Shield reports its own blocks** (`shield.ts` emits an `edge_block` feed event via `ctx.waitUntil`, off the hot
+  path). The dashboard's "Blocked at edge" count is now real, not console-observed. Grew the benign corpus 14 → 22.
+- **Real reset** (`campaign-tracker.ts: resetAll`, wired into `/commander/reset`). Reset now also clears published
+  rules, campaign state and the feed replay buffer, so a page reload after a reset no longer resurrects the last run.
+
+**Red (attack):**
+- **Autonomous attacker with an offline fallback** (`commander/red-agent.ts`). Mutates its payload against the
+  defence's last verdict; falls back to a hand-written SQLite mutation ladder when Workers AI is unavailable (the old
+  version threw a raw stack trace into the UI). Correct SQLite comment syntax; `#` payloads that 500 the origin are gone.
+- **Botnet simulation** (`shield.ts` honours `x-demo-source-ip` only when `DEMO_ALLOW_SOURCE_SPOOF=true`; new
+  `/api/red-team` `botnet` action). Lets one laptop simulate a distributed campaign.
+
+**Dashboard truthfulness.** Removed the mock intercepted-payload, the fake "vector embeddings"/"99.4% block
+rate"/"12ms" placeholders, and the typewriter. The Payload Analyzer now shows the real request, real classifier
+confidence and indicators, and the real reasoning trace; the header shows the real last-analysis latency; the
+analyzer follows the newest incident instead of freezing on the first, and clears on reset.
+
+**Tests.** `commander/synthesizer.test.mjs` (8 tests) covers generalisation, benign-corpus safety, the campaign
+trigger and the degrade-to-IP-block path. Suite is **57 pass** (was 49); both typechecks and the dashboard build clean.
+
+**New config:** `apps/orchestrator/.dev.vars.example` (tracked) documents `DEMO_UPSTREAM` and the demo-only
+`DEMO_ALLOW_SOURCE_SPOOF`. Copy it to `.dev.vars` before `npm run dev`.
+
+---
+
 ## 5. Changes made to pre-existing orchestrator code (review these)
 
 All three are small, in `6a87a05`, and were needed for the demo to be truthful:

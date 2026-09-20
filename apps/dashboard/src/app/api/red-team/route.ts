@@ -16,19 +16,24 @@ const ORCHESTRATOR_URL = (process.env.ORCHESTRATOR_URL ?? process.env.NEXT_PUBLI
 const BENIGN = { label: 'Benign login', form: { username: 'alice', password: 'correct-horse-battery' } };
 // Numeric tautology + trailing comment: the origin's query becomes `... WHERE username = 'admin' OR 1=1 -- ' AND ...`.
 // Picked for the Shield's classifier, not just the origin's parser: it trips two indicators (0.8 confidence, enough for a
-// synthesized regex rule instead of a bare IP block), and the deterministic fallback's signature covers it, so the demo
+// synthesized regex rule instead of a bare IP block), and the deterministic path covers it, so the demo
 // still yields a rule when Workers AI is unavailable. A bare `' OR '1'='1` isn't recognised by the classifier at all.
 const ATTACK = { label: 'SQLi login bypass', form: { username: "admin' OR 1=1 -- ", password: 'wrong' } };
 const BURST_SIZE = 3; // the Commander opens an incident on 3 suspicious requests inside 60s
+const BOTNET_SIZE = 4; // distinct source IPs sharing one fingerprint -> distributed campaign (min 3)
 
 const IP_PATTERN = /^[0-9a-fA-F:.]{1,64}$|^unknown$/;
 
-async function fire({ label, form }: { label: string; form: Record<string, string> }): Promise<RedTeamResult> {
+async function fire({ label, form }: { label: string; form: Record<string, string> }, sourceIp?: string): Promise<RedTeamResult> {
   const started = Date.now();
   try {
+    const headers: Record<string, string> = { 'content-type': 'application/x-www-form-urlencoded' };
+    // Simulate a botnet from one machine. The Shield only trusts this when the operator
+    // set DEMO_ALLOW_SOURCE_SPOOF=true; otherwise it is ignored and the real caller stands.
+    if (sourceIp) headers['x-demo-source-ip'] = sourceIp;
     const response = await fetch(`${ORCHESTRATOR_URL}/login`, {
       method: 'POST',
-      headers: { 'content-type': 'application/x-www-form-urlencoded' },
+      headers,
       body: new URLSearchParams(form),
       redirect: 'manual',
       cache: 'no-store',
@@ -86,10 +91,24 @@ export async function POST(request: Request): Promise<NextResponse<RedTeamRespon
       for (let i = 0; i < BURST_SIZE; i++) results.push(await fire({ ...ATTACK, label: `${ATTACK.label} ${i + 1}/${BURST_SIZE}` }));
       return NextResponse.json({ results });
     }
+    case 'botnet': {
+      // The same exploit from several distinct source IPs. No single address bursts, so
+      // the only reason Blue reacts is cross-IP correlation: a distributed campaign, met
+      // with a technique-level pattern rule rather than an IP block.
+      const results: RedTeamResult[] = [];
+      for (let i = 0; i < BOTNET_SIZE; i++) {
+        const ip = `198.51.100.${10 + i}`;
+        results.push(await fire({ ...ATTACK, label: `botnet ${ip}` }, ip));
+      }
+      return NextResponse.json({ results });
+    }
     case 'reset': {
       const ips = (Array.isArray(body.ips) ? body.ips : []).filter((ip): ip is string => typeof ip === 'string' && IP_PATTERN.test(ip));
-      // Local `wrangler dev` reports the caller as ::1 or 127.0.0.1, or "unknown" if the header is absent.
-      const targets = ips.length ? ips : ['::1', '127.0.0.1', 'unknown'];
+      // Always clear the loopback identities and the simulated attacker IPs, plus whatever
+      // the dashboard has seen. Any reset also wipes the global tracker server-side, so the
+      // room does not repopulate on reload.
+      const simulated = ['203.0.113.50', ...Array.from({ length: BOTNET_SIZE }, (_, i) => `198.51.100.${10 + i}`)];
+      const targets = [...new Set([...ips, '::1', '127.0.0.1', 'unknown', ...simulated])];
       return NextResponse.json({ results: [], reset: await resetIps(targets) });
     }
     case 'auto': {
@@ -103,14 +122,16 @@ export async function POST(request: Request): Promise<NextResponse<RedTeamRespon
           const errText = await agentRes.text();
           throw new Error(`Orchestrator returned ${agentRes.status}: ${errText}`);
         }
-        const { thought, payload } = await agentRes.json();
-        const result = await fire({ label: 'AI Mutation', form: { username: payload, password: 'wrong' } });
+        const { thought, payload, source } = await agentRes.json();
+        // The autonomous attacker keeps one identity across its mutation ladder, so its
+        // blocks and breaches accumulate as a single evolving attacker.
+        const result = await fire({ label: `AI mutation${source === 'scripted' ? ' (offline)' : ''}`, form: { username: payload, password: 'wrong' } }, '203.0.113.50');
         return NextResponse.json({ results: [{ ...result, thought, payload }] });
       } catch (e) {
         return NextResponse.json({ results: [], error: 'Red Agent failed: ' + (e as Error).message }, { status: 500 });
       }
     }
     default:
-      return NextResponse.json({ results: [], error: 'action must be benign | attack | burst | auto | reset' }, { status: 400 });
+      return NextResponse.json({ results: [], error: 'action must be benign | attack | burst | botnet | auto | reset' }, { status: 400 });
   }
 }

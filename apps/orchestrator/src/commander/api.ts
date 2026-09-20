@@ -96,10 +96,13 @@ export async function handleCommanderRequest(request: Request, env: Env): Promis
 			}
 
 			// POST /commander/reset/<ip> — clean slate, for re-running the demo.
+			// Also wipes the global tracker (rules, campaigns, feed replay) so a page
+			// reload after a reset does not repopulate the room from the previous run.
 			case 'reset': {
 				const ip = segments[1];
 				if (!ip) return json({ error: 'usage: POST /commander/reset/<ip>' }, 400);
-				return json(await commanderFor(env, ip).reset());
+				const [commander, tracker_] = await Promise.all([commanderFor(env, ip).reset(), tracker(env).resetAll()]);
+				return json({ ...commander, tracker: tracker_ });
 			}
 
 			case 'campaigns':
@@ -131,7 +134,8 @@ export async function handleCommanderRequest(request: Request, env: Env): Promis
 			case 'simulate':
 				return simulate(request, env, url);
 
-			// POST /commander/red-agent — autonomous AI attacker
+			// POST /commander/red-agent — autonomous Red attacker's next move.
+			// Never fails for lack of a login: falls back to a scripted mutation ladder.
 			case 'red-agent': {
 				if (request.method !== 'POST') return json({ error: 'POST required' }, 405);
 				let body: { history?: AttackHistory[] };
@@ -140,7 +144,7 @@ export async function handleCommanderRequest(request: Request, env: Env): Promis
 				} catch {
 					return json({ error: 'invalid JSON body' }, 400);
 				}
-				return json(await generateAttackPayload(env, body.history || []));
+				return json(await generateAttackPayload(env, Array.isArray(body.history) ? body.history : []));
 			}
 
 			default:

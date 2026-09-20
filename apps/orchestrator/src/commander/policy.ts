@@ -103,11 +103,16 @@ export interface Decision {
 /**
  * The core judgement call, made once per ingested event.
  *
- * Analysis fires on any of three signals, because attacks do not all look the same:
+ * Analysis fires on any of four signals, because attacks do not all look the same:
  *   - a burst: 3 suspicious requests in 1 minute, the project's documented trigger (volume),
  *   - crossing into a higher enforcement stage once an incident is already open (intensity),
  *   - a second distinct attack class from one IP (breadth — someone is probing for
- *     whatever sticks, which is worse than someone spraying one payload).
+ *     whatever sticks, which is worse than someone spraying one payload),
+ *   - this event belonging to a *distributed campaign* (coordination).
+ *
+ * That last signal is the whole reason CampaignTracker exists. A botnet giving each
+ * address a single request never trips a per-IP burst, so without it the one attack
+ * shape we most want to stop is the one that never gets analysed.
  */
 export function decide(input: {
 	profile: IpProfile;
@@ -116,8 +121,10 @@ export function decide(input: {
 	now: number;
 	config: PolicyConfig;
 	incidentOpen: boolean;
+	/** The global tracker has seen this fingerprint on enough distinct addresses. */
+	campaignDistributed?: boolean;
 }): Decision {
-	const { profile, classification, windowEventCount, now, config, incidentOpen } = input;
+	const { profile, classification, windowEventCount, now, config, incidentOpen, campaignDistributed } = input;
 	const reasons: string[] = [];
 
 	const decayed = decayScore(profile.score, now - profile.scoredAt, config.scoreHalfLifeMs);
@@ -157,8 +164,12 @@ export function decide(input: {
 		profile.classesSeen.length > 0;
 	if (newClass) reasons.push(`multi-vector: new attack class ${classification.attackClass} after ${profile.classesSeen.join(', ')}`);
 
+	if (campaignDistributed) {
+		reasons.push('part of a distributed campaign: the same fingerprint is live on several addresses');
+	}
+
 	const suppressed = stage === 'observe' && Boolean(profile.pardonedUntil && profile.pardonedUntil > now);
-	const triggerAnalysis = !suppressed && (burst || newClass || (incidentOpen && escalated));
+	const triggerAnalysis = !suppressed && (burst || newClass || Boolean(campaignDistributed) || (incidentOpen && escalated));
 
 	return { score, stage, previousStage, escalated, triggerAnalysis, reasons };
 }

@@ -98,20 +98,26 @@ export function RedTeamConsole({ history, knownIps, onResults, onReset }: Props)
         </Button>
       </div>
 
-      <Button 
-        variant="outline" 
-        size="sm" 
+      <Button variant="outline" size="sm" disabled={disabled} onClick={() => run('botnet')}
+        className="w-full text-xs border-rose-900/50 hover:bg-rose-950 hover:text-rose-400 gap-2 mt-[-8px]">
+        {busy === 'botnet' ? 'Spraying…' : 'Botnet ×4 (distributed campaign)'}
+      </Button>
+
+      <Button
+        variant="outline"
+        size="sm"
         onClick={() => { setAutoIterations(0); setAutoRun(true); }}
         disabled={disabled || autoRun}
-        className="w-full border-violet-900/50 hover:bg-violet-950 hover:text-violet-400 gap-2 mt-[-8px]"
+        className="w-full border-violet-900/50 hover:bg-violet-950 hover:text-violet-400 gap-2"
       >
         <BrainCircuit className="h-4 w-4" />
-        {autoRun ? `AI Attacking... (${autoIterations}/5)` : 'Unleash AI (Auto-Attack)'}
+        {autoRun ? `Red agent attacking… (${autoIterations}/5)` : 'Unleash AI (adaptive attacker)'}
       </Button>
 
       <div className="text-[11px] text-zinc-500 leading-relaxed bg-zinc-900/50 p-3 rounded-md border border-zinc-800">
-        The Commander opens an incident after 3 hostile requests in 60s, so use <strong>Burst ×3</strong>, wait a couple of seconds for the queue to drain,
-        then fire <strong>SQLi attack</strong> again to see the edge block it.{' '}
+        <strong>Burst ×3</strong> then wait ~3s for Blue to synthesize a rule, then <strong>SQLi attack</strong> to see the edge block it.
+        <strong> Botnet</strong> sprays one exploit from 4 IPs to trip distributed-campaign detection.
+        <strong> Unleash AI</strong> mutates its payload against whatever Blue deploys.{' '}
         <button className="underline hover:text-zinc-300 ml-1" disabled={disabled} onClick={() => run('reset')}>
           {busy === 'reset' ? 'Resetting…' : 'Reset demo'}
         </button>

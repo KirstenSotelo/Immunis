@@ -34,6 +34,44 @@ export interface DeployedMitigation {
   keys: string[];
 }
 
+export interface AnalystStep {
+  step: number;
+  tool: string;
+  ok?: boolean;
+  summary: string;
+}
+
+export interface ValidationResult {
+  ok: boolean;
+  reasons: string[];
+  falsePositives: string[];
+}
+
+export interface AnalystReport {
+  source: string;
+  latencyMs: number;
+  degradedReason?: string;
+  trace: AnalystStep[];
+  validation?: ValidationResult;
+}
+
+export interface RequestEvidence {
+  method: string;
+  target: string;
+  payload: string;
+  userAgent?: string;
+}
+
+export interface EdgeBlockEvent {
+  ip: string;
+  method: string;
+  target: string;
+  reason: 'ip_block' | 'pattern_rule';
+  ruleId?: string;
+  pattern?: string;
+  attackClass?: AttackClass;
+}
+
 export interface IngestResult {
   ip: string;
   accepted: boolean;
@@ -45,6 +83,8 @@ export interface IngestResult {
   triggeredAnalysis: boolean;
   mitigation?: DeployedMitigation;
   reasons: string[];
+  evidence?: RequestEvidence;
+  analyst?: AnalystReport;
 }
 
 export interface CampaignSummary {
@@ -76,6 +116,7 @@ export type FeedEvent =
   | { type: 'ingest'; at: number; data: IngestResult }
   | { type: 'campaign'; at: number; data: CampaignSummary }
   | { type: 'mitigation'; at: number; data: DeployedMitigation }
+  | { type: 'edge_block'; at: number; data: EdgeBlockEvent }
   | { type: 'hello'; at: number; data: { campaigns: CampaignSummary[] } };
 
 /** A row of GET /commander/incidents (D1 ledger). Only the fields we read. */
@@ -104,6 +145,12 @@ export interface LogEntry {
   confidence?: number;
   detail?: string;
   analysis?: boolean;
+  /** The real observed request, when this entry is a classified ingest. */
+  evidence?: RequestEvidence;
+  /** The Analyst's real reasoning trace, when this ingest ran analysis. */
+  analyst?: AnalystReport;
+  /** Matched indicator names, for the analyzer panel. */
+  indicators?: string[];
 }
 
 export interface MitigationCard {
@@ -128,7 +175,7 @@ export interface MitigationCard {
 // Red Team console (POST /api/red-team)
 // ---------------------------------------------------------------------------
 
-export type RedTeamAction = 'benign' | 'attack' | 'burst' | 'reset' | 'auto';
+export type RedTeamAction = 'benign' | 'attack' | 'burst' | 'botnet' | 'reset' | 'auto';
 export type Verdict = 'breached' | 'blocked' | 'rejected' | 'error';
 
 export interface RedTeamResult {

@@ -28,8 +28,19 @@ export interface Env {
 
 	/** If set, `/commander/*` routes require `X-Commander-Key`. Unset = open (local dev). */
 	COMMANDER_API_KEY?: string;
-	/** "auto" (default) | "ai" | "heuristic" */
+	/**
+	 * "auto" (default) tries the Workers AI Analyst and falls back on any failure.
+	 * "fallback" skips the model entirely and uses the deterministic synthesizer.
+	 * Those are the only two values the code implements.
+	 */
 	ANALYST_MODE?: string;
+	/**
+	 * Demo affordance: when "true", the Shield trusts an `x-demo-source-ip` header so the
+	 * Red Team console can simulate a botnet from one machine. Cloudflare overwrites
+	 * `cf-connecting-ip`, so without this a deployed demo collapses every simulated
+	 * attacker into one address. Turn it off for anything that is not a demo.
+	 */
+	DEMO_ALLOW_SOURCE_SPOOF?: string;
 
 	// Policy tuning, all optional (see commander/policy.ts for defaults).
 	BURST_THRESHOLD?: string;
@@ -139,6 +150,58 @@ export interface ValidationResult {
 	falsePositives: string[];
 }
 
+/**
+ * One step of the Analyst's reasoning, flattened for the dashboard.
+ *
+ * The LLM path fills this from the tool loop's trace (`inspect_incident`, `propose`,
+ * a rejection, a revised proposal). The deterministic path fills it from the
+ * synthesizer's candidate/validation steps. Either way the UI shows real work —
+ * it never renders text that the engine did not actually produce.
+ */
+export interface AnalystStep {
+	step: number;
+	tool: string;
+	ok?: boolean;
+	/** Human-readable one-liner. Already truncated; safe to render verbatim. */
+	summary: string;
+}
+
+/** What the Commander learned by asking the Analyst. Surfaced in the feed. */
+export interface AnalystReport {
+	/** `workers-ai:<model>` when the LLM answered, `commander-synthesizer` otherwise. */
+	source: string;
+	latencyMs: number;
+	/** Present when the LLM path failed and the deterministic path answered instead. */
+	degradedReason?: string;
+	trace: AnalystStep[];
+	validation?: ValidationResult;
+}
+
+/** The request that was actually observed, for the dashboard's payload panel. */
+export interface RequestEvidence {
+	method: string;
+	/** Path + query only; the host is ours and is not evidence. */
+	target: string;
+	/** Request body, truncated and shown verbatim. */
+	payload: string;
+	userAgent?: string;
+}
+
+/**
+ * A request the Shield refused at the edge, reported off the hot path.
+ * Without this the dashboard can only count blocks the Red Team console saw itself.
+ */
+export interface EdgeBlockEvent {
+	ip: string;
+	method: string;
+	target: string;
+	/** Which enforcement layer stopped it. */
+	reason: 'ip_block' | 'pattern_rule';
+	ruleId?: string;
+	pattern?: string;
+	attackClass?: AttackClass;
+}
+
 // ---------------------------------------------------------------------------
 // Commander state
 // ---------------------------------------------------------------------------
@@ -209,6 +272,10 @@ export interface IngestResult {
 	triggeredAnalysis: boolean;
 	mitigation?: DeployedMitigation;
 	reasons: string[];
+	/** The observed request. Lets the dashboard show the real payload, not a mock. */
+	evidence?: RequestEvidence;
+	/** Set whenever this ingest ran the Analyst. */
+	analyst?: AnalystReport;
 }
 
 export interface CommanderSnapshot {
@@ -252,4 +319,5 @@ export type FeedEvent =
 	| { type: 'ingest'; at: number; data: IngestResult }
 	| { type: 'campaign'; at: number; data: CampaignSummary }
 	| { type: 'mitigation'; at: number; data: DeployedMitigation }
+	| { type: 'edge_block'; at: number; data: EdgeBlockEvent }
 	| { type: 'hello'; at: number; data: { campaigns: CampaignSummary[] } };

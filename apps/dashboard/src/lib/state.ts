@@ -3,6 +3,7 @@ import type {
   CampaignSummary,
   Connection,
   DeployedMitigation,
+  EdgeBlockEvent,
   FeedEvent,
   IncidentRow,
   LogEntry,
@@ -29,8 +30,10 @@ export interface State {
   lastClassByIp: Record<string, AttackClass>;
   knownIps: string[];
   threat: { ip: string; score: number; stage: Stage; at: number } | null;
-  /** Only what the Red Team console observed — the Shield emits no event for its own 403s. */
+  /** Red Team console counters (sent/breached/rejected) plus its observed history. */
   edge: { sent: number; blocked: number; breached: number; rejected: number; history: RedTeamResult[] };
+  /** Blocks the Shield itself reported over the feed, deduped by id. */
+  edgeBlocks: Record<string, EdgeBlockEvent>;
 }
 
 export const initialState: State = {
@@ -45,6 +48,7 @@ export const initialState: State = {
   knownIps: [],
   threat: null,
   edge: { sent: 0, blocked: 0, breached: 0, rejected: 0, history: [] },
+  edgeBlocks: {},
 };
 
 export type Action =
@@ -110,7 +114,7 @@ export function reducer(state: State, action: Action): State {
     case 'edge':
       return applyEdgeResults(state, action.results);
     case 'clear':
-      return { ...initialState, connection: state.connection };
+      return { ...initialState, connection: state.connection, edgeBlocks: {} };
   }
 }
 
@@ -144,6 +148,31 @@ function applyFeedEvent(state: State, event: FeedEvent): State {
     case 'mitigation':
       return upsertMitigation(state, event.data, {}, event.at);
 
+    case 'edge_block': {
+      const b = event.data;
+      // The Shield can fire several 403s a second; dedupe by the request shape within
+      // this timestamp so the counter tracks distinct blocks, not raw socket traffic.
+      const id = `edge_block:${b.ip}:${b.target}:${event.at}`;
+      if (state.edgeBlocks[id]) return state;
+      const logId = `edgeblk:${id}`;
+      const label = b.reason === 'pattern_rule' ? `pattern rule ${b.pattern ? `/${b.pattern.slice(0, 40)}/` : ''}` : 'IP block';
+      return {
+        ...state,
+        edgeBlocks: { ...state.edgeBlocks, [id]: b },
+        log: state.log.some((e) => e.id === logId)
+          ? state.log
+          : pushLog(state.log, {
+              id: logId,
+              at: event.at,
+              kind: 'edge',
+              tone: 'ok',
+              ip: b.ip,
+              attackClass: b.attackClass,
+              text: `Blocked at edge — ${b.method} ${b.target} · ${label}`,
+            }),
+      };
+    }
+
     case 'ingest': {
       const result = event.data;
       if (!result.accepted || result.duplicate) return state;
@@ -171,6 +200,9 @@ function applyFeedEvent(state: State, event: FeedEvent): State {
           text: c.pathTemplate || '/',
           detail: c.indicators.slice(0, 4).join(' · ') || undefined,
           analysis: result.triggeredAnalysis,
+          evidence: result.evidence,
+          analyst: result.analyst,
+          indicators: c.indicators,
         }),
       };
       if (result.mitigation) {

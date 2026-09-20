@@ -1,11 +1,12 @@
 import { Shield, Activity, Zap } from "lucide-react"
-import { Badge } from "@/components/ui/badge"
 
 interface HeaderProps {
   connection: "live" | "offline" | "connecting"
+  /** Latency of the most recent Analyst run, ms. Null until one has happened. */
+  analystMs: number | null
 }
 
-export function Header({ connection }: HeaderProps) {
+export function Header({ connection, analystMs }: HeaderProps) {
   const status = {
     live: { label: "Edge Active", color: "bg-emerald-500", text: "text-emerald-400" },
     offline: { label: "Offline", color: "bg-rose-500", text: "text-rose-400" },
@@ -30,7 +31,9 @@ export function Header({ connection }: HeaderProps) {
           <span className={`h-2 w-2 rounded-full ${status.color} ${connection === 'live' ? 'animate-pulse-subtle' : ''}`} />
           <span className={status.text}>{status.label}</span>
           <span className="text-zinc-600">|</span>
-          <span className="flex items-center gap-1"><Zap className="h-3 w-3 text-zinc-500"/> {connection === 'live' ? '12ms' : '—'}</span>
+          <span className="flex items-center gap-1" title="Latency of the last Blue Team analysis">
+            <Zap className="h-3 w-3 text-zinc-500"/> {analystMs != null ? `${analystMs}ms` : '—'}
+          </span>
         </div>
         
         <div className="flex items-center gap-3 border-l border-zinc-800 pl-6">

@@ -209,6 +209,29 @@ export class CampaignTracker extends DurableObject<Env> {
 		return stored.filter((rule) => rule.expiresAt > now);
 	}
 
+	/**
+	 * Wipe everything this object owns: published rules, campaign correlation and the
+	 * feed replay buffer.
+	 *
+	 * Resetting the per-IP Commanders alone is not enough to re-run the demo, because
+	 * the replay buffer lives here — clear only the browser and the next page load
+	 * repopulates the room with the previous run's events.
+	 */
+	async resetAll(): Promise<{ ok: true; clearedRules: number; clearedCampaigns: number; clearedFeed: number }> {
+		return this.serialize(async () => {
+			const rules = (await this.ctx.storage.get<PatternRule[]>(KEY_RULES)) ?? [];
+			const campaigns = await this.ctx.storage.list({ prefix: PREFIX_FINGERPRINT });
+			const feed = await this.ctx.storage.list({ prefix: PREFIX_FEED });
+
+			await this.ctx.storage.delete([...campaigns.keys(), ...feed.keys()]);
+			await this.ctx.storage.put(KEY_RULES, []);
+			await publishPatternRules(this.env, []);
+			await this.ctx.storage.deleteAlarm();
+
+			return { ok: true as const, clearedRules: rules.length, clearedCampaigns: campaigns.size, clearedFeed: feed.size };
+		});
+	}
+
 	// =======================================================================
 	// Live feed
 	// =======================================================================

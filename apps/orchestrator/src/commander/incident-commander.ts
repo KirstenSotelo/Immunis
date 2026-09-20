@@ -23,6 +23,7 @@
 import { DurableObject } from 'cloudflare:workers';
 
 import type {
+	AnalystReport,
 	CampaignSummary,
 	CommanderSnapshot,
 	DeployedMitigation,
@@ -32,6 +33,7 @@ import type {
 	IngestResult,
 	IpProfile,
 	MitigationPlan,
+	RequestEvidence,
 	Stage,
 	SuspiciousEvent,
 	ValidationResult,
@@ -58,6 +60,42 @@ const EVENT_RETENTION_MULTIPLIER = 6;
 
 function padTime(ms: number): string {
 	return Math.max(0, Math.floor(ms)).toString().padStart(16, '0');
+}
+
+/**
+ * The request as the dashboard should show it: path and body only.
+ * The host is ours, not evidence, and showing it invites the reader to misread our own
+ * origin as part of the attack. Percent-decode target and body so the panel shows the
+ * payload the way the classifier sees it (`admin' OR 1=1 -- `, not `admin%27+OR...`).
+ */
+function decodeForDisplay(input: string): string {
+	let value = input;
+	for (let pass = 0; pass < 2; pass++) {
+		try {
+			const next = decodeURIComponent(value.replace(/\+/g, ' '));
+			if (next === value) break;
+			value = next;
+		} catch {
+			break;
+		}
+	}
+	return value;
+}
+
+function describeEvidence(event: SuspiciousEvent): RequestEvidence {
+	let target = event.url;
+	try {
+		const parsed = new URL(event.url);
+		target = parsed.pathname + parsed.search;
+	} catch {
+		// Relative or malformed: show it as received.
+	}
+	return {
+		method: event.method,
+		target: decodeForDisplay(target).slice(0, 512),
+		payload: decodeForDisplay(event.payload).slice(0, 2048),
+		userAgent: event.userAgent?.slice(0, 256),
+	};
 }
 
 export class IncidentCommander extends DurableObject<Env> {
@@ -191,6 +229,11 @@ export class IncidentCommander extends DurableObject<Env> {
 			start: `${PREFIX_EVENT}${padTime(now - config.burstWindowMs)}`,
 		});
 
+		// Correlate before deciding. A botnet gives each address a single request, so the
+		// only signal that this event matters may be that 40 other addresses sent the
+		// same shape — and `decide()` cannot weigh that unless it is asked first.
+		const campaign = await this.reportToCampaignTracker(event, classification, now);
+
 		const decision = decide({
 			profile,
 			classification,
@@ -198,6 +241,7 @@ export class IncidentCommander extends DurableObject<Env> {
 			now,
 			config,
 			incidentOpen: Boolean(openIncident),
+			campaignDistributed: campaign?.distributed,
 		});
 
 		profile.ip = event.ip;
@@ -213,10 +257,6 @@ export class IncidentCommander extends DurableObject<Env> {
 		}
 		await this.ctx.storage.put(KEY_PROFILE, profile);
 
-		// Tell the global tracker about every classified event. Campaign detection needs
-		// to see single events from many IPs — a botnet gives each address one request.
-		const campaign = await this.reportToCampaignTracker(event, classification, now);
-
 		// Background work, scheduled rather than done inline.
 		await this.scheduler.scheduleIn('gc', GC_INTERVAL_MS);
 		await this.scheduler.scheduleIn('decay', DECAY_INTERVAL_MS);
@@ -230,6 +270,7 @@ export class IncidentCommander extends DurableObject<Env> {
 			classification,
 			triggeredAnalysis: false,
 			reasons: decision.reasons,
+			evidence: describeEvidence(event),
 		};
 
 		if (decision.triggerAnalysis) {
@@ -247,6 +288,7 @@ export class IncidentCommander extends DurableObject<Env> {
 			result.incidentId = outcome.incidentId;
 			result.mitigation = outcome.mitigation;
 			result.reasons = [...result.reasons, ...outcome.reasons];
+			result.analyst = outcome.analyst;
 		}
 
 		await this.publishToFeed(result);
@@ -266,7 +308,7 @@ export class IncidentCommander extends DurableObject<Env> {
 		campaign?: CampaignSummary;
 		config: PolicyConfig;
 		now: number;
-	}): Promise<{ triggered: boolean; incidentId?: string; mitigation?: DeployedMitigation; reasons: string[] }> {
+	}): Promise<{ triggered: boolean; incidentId?: string; mitigation?: DeployedMitigation; reasons: string[]; analyst?: AnalystReport }> {
 		const { event, classification, profile, decision, campaign, config, now } = args;
 		const reasons: string[] = [];
 
@@ -351,6 +393,11 @@ export class IncidentCommander extends DurableObject<Env> {
 			const applied = await this.applyPlan(incident, outcome.plan, outcome.proofSamples, campaign);
 			reasons.push(...applied.reasons);
 
+			// The validator's verdict is part of the Analyst's story: "it proposed this,
+			// we checked it against the benign corpus, here is what happened".
+			const analyst: AnalystReport = { ...outcome.report, validation: applied.validation };
+			if (applied.plan.source !== outcome.plan.source) analyst.source = applied.plan.source;
+
 			// A pattern rule stops the technique, but Member 1's hot path enforces per-address
 			// blocks via `block_ip_<ip>`. Once this IP has earned `block`, block it as well.
 			if (decision.stage === 'block' && applied.mitigation?.kind === 'pattern_rule') {
@@ -372,7 +419,7 @@ export class IncidentCommander extends DurableObject<Env> {
 			await this.ctx.storage.put(KEY_OPEN_INCIDENT, incident);
 			await recordIncident(this.env, incident);
 
-			return { triggered: true, incidentId: incident.id, mitigation: applied.mitigation, reasons };
+			return { triggered: true, incidentId: incident.id, mitigation: applied.mitigation, reasons, analyst };
 		} catch (error) {
 			// An incident that fails to analyse must not take down the queue consumer.
 			console.error('[commander] incident handling failed:', (error as Error).message);
@@ -516,7 +563,9 @@ export class IncidentCommander extends DurableObject<Env> {
 			incidentId: incident.id,
 			ip: incident.ip,
 			openedAt: incident.openedAt,
-			eventCount: incident.eventCount,
+			// The number of requests we can actually show, not the number of events that
+			// happened to trigger analysis — otherwise a 3-request burst reports "1 request".
+			eventCount: Math.max(events.length, incident.eventCount),
 			events,
 			classification,
 			classesSeen: incident.classesSeen,

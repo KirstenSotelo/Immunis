@@ -103,8 +103,9 @@ The project has six parts. Think of a shop with a faulty back door.
 
 ## 4. What happens during the demo, step by step
 
-The dashboard has a panel called **Red Team Console** with three buttons. "Red team" is security-speak for the
-people playing the attacker, and "blue team" for the defenders. Here is the story you will act out:
+The dashboard has a **Red Team Console** (top of the screen). "Red team" is security-speak for the people playing
+the attacker, and "blue team" for the defenders. The centre panel — the **Payload Analyzer** — shows the real
+intercepted request and the Blue Team's real reasoning as it decides what to do. Here is the story you will act out:
 
 1. **Click "Benign login".** This pretends to be an ordinary customer typing a wrong password. The Target says "wrong
    password" (a `401`). The Shield lets it through, and nothing suspicious is recorded. *This proves the defence does
@@ -113,13 +114,25 @@ people playing the attacker, and "blue team" for the defenders. Here is the stor
    **succeed**: the Target hands over the administrator's access token. In the console you see red "200 BREACHED"
    lines. *This is the moment that shows the flaw is real.*
 3. **Wait two or three seconds.** Behind the scenes, the Shield has been reporting each attack. On the third, the
-   Commander decides "this is an attack", calls the Analyst, gets a rule, runs the Safety Check and deploys it. In the
-   **Live Log** you will see an **ANALYST ENGAGED** tag, and a card appears in the **Mitigation Feed** showing the new
-   rule, with a green **LIVE AT EDGE** badge.
+   Commander decides "this is an attack" and calls the Analyst. Watch the **Blue Team reasoning** panel: it reads the
+   evidence, *synthesises a rule from the payload it actually saw*, checks that rule against the real attack and
+   against a corpus of honest traffic, and only then deploys it. A card appears in **Active Mitigations** with the new
+   rule and a countdown.
 4. **Click "SQLi attack" once more.** This time the Shield answers instantly with a **`403 Forbidden`**. The Target
    never even sees the request. The "Blocked at edge" counter goes up. *That is the whole point: the system defended
    itself, with no human, and the website's code never changed.*
 5. **Click "Reset demo"** to wipe the slate so you can run it again.
+
+Two extra demos on the same console:
+
+- **"Botnet ×4"** sprays the *same* exploit from four different addresses, one request each. No single address looks
+  busy enough to act on, so this is the blind spot of per-address defence. A separate component notices the same
+  attack *shape* on several addresses at once, raises a **distributed campaign**, and blocks the *technique* rather
+  than any one address — so a fifth, never-before-seen attacker is stopped on its first try, while honest traffic
+  from that same address still passes.
+- **"Unleash AI"** turns the attacker itself into an autonomous agent that *mutates* its payload in response to what
+  the defence did to its last attempt, round after round. Watch the two AIs fight: Red changes its exploit, Blue
+  adapts its rule. (Both AIs fall back to built-in behaviour when there is no Cloudflare login, so this works offline.)
 
 > **Why three attacks, not one?** The Commander is deliberately cautious. One odd request could be a mistake or a
 > coincidence, so it waits for a *pattern* (three suspicious requests within a minute) before taking action.
@@ -172,11 +185,13 @@ You should see: `[Origin] Vulnerable target running on http://localhost:3001`
 **Window 2: the Shield + Commander + Analyst** (runs at port 8787)
 ```
 cd apps/orchestrator
-npm install        # first time only
-npm run db:init    # first time only: creates the local incident notebook
+npm install                 # first time only
+cp .dev.vars.example .dev.vars   # first time only: local config (which origin to protect)
+npm run db:init             # first time only: creates the local incident notebook
 npm run dev
 ```
-Wait until you see `Ready on http://localhost:8787`.
+Wait until you see `Ready on http://localhost:8787`. If you skip the `.dev.vars` copy, every
+request comes back as `503` because the Shield has no origin to forward to.
 
 **Window 3: the War Room dashboard** (runs at port 3000)
 ```

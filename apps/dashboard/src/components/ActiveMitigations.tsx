@@ -53,7 +53,7 @@ export function ActiveMitigations({ cards, now, edgeBlocks, campaigns }: ActiveM
         </div>
       )}
 
-      <ScrollArea className="flex-1">
+      <ScrollArea className="flex-1 min-h-0">
         <div className="p-4">
           <Table>
           <TableHeader>
@@ -81,8 +81,8 @@ export function ActiveMitigations({ cards, now, edgeBlocks, campaigns }: ActiveM
                       )}
                     </div>
                   </TableCell>
-                  <TableCell className="py-3 max-w-[140px]">
-                    <div className="font-mono text-[10px] text-zinc-300 truncate bg-zinc-900 px-1 py-0.5 rounded border border-zinc-700"
+                  <TableCell className="py-3 w-[200px]">
+                    <div className="font-mono text-[10px] text-zinc-300 break-all bg-zinc-900 px-1.5 py-1 rounded border border-zinc-700"
                       title={card.pattern || card.kind}>
                       {card.kind === "pattern_rule" ? (card.pattern ? `/${card.pattern}/` : "pattern") : "IP block"}
                     </div>

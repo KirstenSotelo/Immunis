@@ -116,7 +116,7 @@ export default function WarRoom() {
   }, [state.log]);
 
   return (
-    <div className="flex flex-col min-h-screen bg-zinc-950 text-zinc-100">
+    <div className="flex flex-col h-screen overflow-hidden bg-zinc-950 text-zinc-100">
       <div className="flex-none sticky top-0 z-50 bg-zinc-950 border-b border-zinc-800">
         <Header connection={state.connection} analystMs={lastAnalystMs} />
       </div>
@@ -152,8 +152,8 @@ export default function WarRoom() {
         </Dialog>
       </div>
 
-      <main className="flex-1 grid grid-cols-12 relative p-4 gap-4">
-        <div className="col-span-4 relative z-10">
+      <main className="flex-1 grid grid-cols-12 relative p-4 gap-4 min-h-0">
+        <div className="col-span-4 relative z-10 h-full overflow-hidden">
           <TrafficFeed
             entries={state.log}
             selectedId={selectedEntry?.id || null}
@@ -161,11 +161,11 @@ export default function WarRoom() {
           />
         </div>
 
-        <div className="col-span-5 relative z-10">
+        <div className="col-span-5 relative z-10 h-full overflow-hidden">
           <PayloadAnalyzer entry={selectedEntry} />
         </div>
 
-        <div className="col-span-3 relative z-10">
+        <div className="col-span-3 relative z-10 h-full overflow-hidden">
           <ActiveMitigations cards={state.mitigations} now={now} edgeBlocks={edgeBlockCount} campaigns={Object.values(state.campaigns)} />
         </div>
       </main>

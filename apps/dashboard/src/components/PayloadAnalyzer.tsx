@@ -32,7 +32,7 @@ export function PayloadAnalyzer({ entry }: PayloadAnalyzerProps) {
   const confidencePct = entry.confidence != null ? Math.round(entry.confidence * 100) : null
 
   return (
-    <div className="flex flex-col bg-zinc-950 p-4 gap-4 overflow-hidden border border-zinc-800 rounded-lg shadow-sm h-fit">
+    <div className="flex flex-col bg-zinc-950 p-4 gap-4 overflow-hidden border border-zinc-800 rounded-lg shadow-sm h-full">
       <div className="flex items-center justify-between shrink-0">
         <h2 className="text-sm font-semibold text-zinc-200 flex items-center gap-2">
           <Cpu className="h-4 w-4 text-zinc-100" />
@@ -49,8 +49,8 @@ export function PayloadAnalyzer({ entry }: PayloadAnalyzerProps) {
       <div className="grid grid-cols-2 gap-3 shrink-0">
         <Card className="p-3 bg-zinc-900/40">
           <div className="text-[10px] text-zinc-500 uppercase tracking-wider mb-1">Source</div>
-          <div className="font-mono text-sm text-zinc-300">{entry.ip || "unknown"}</div>
-          <div className="text-xs text-zinc-500 mt-1 font-mono truncate">
+          <div className="font-mono text-sm text-zinc-300 break-all">{entry.ip || "unknown"}</div>
+          <div className="text-xs text-zinc-500 mt-1 font-mono break-all">
             {evidence ? `${evidence.method} ${evidence.target}` : entry.text}
           </div>
         </Card>
@@ -98,7 +98,7 @@ ${evidence.payload || "(no body)"}`}
       </div>
 
       {/* The real analyst reasoning trace */}
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-2 flex-1 min-h-0">
         <div className="text-xs font-medium text-zinc-400 flex items-center gap-2">
           <Database className="h-3 w-3" />
           Blue Team reasoning
@@ -106,7 +106,7 @@ ${evidence.payload || "(no body)"}`}
             <span className="text-[10px] text-amber-400/80 font-mono normal-case">fallback: {analyst.degradedReason}</span>
           )}
         </div>
-        <ScrollArea className="bg-zinc-950 border border-zinc-800 rounded-md p-3 font-mono text-[11px] leading-relaxed shadow-sm max-h-[300px]">
+        <ScrollArea className="bg-zinc-950 border border-zinc-800 rounded-md p-3 font-mono text-[11px] leading-relaxed shadow-sm flex-1">
           {analyst ? (
             <div className="flex flex-col gap-2">
               {analyst.trace.map((step) => {

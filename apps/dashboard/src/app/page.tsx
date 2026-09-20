@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useWarRoom } from '@/lib/useWarRoom';
-import type { LogEntry } from '@/lib/types';
+import type { LogEntry, RedTeamAction, RedTeamResponse, RedTeamResult } from '@/lib/types';
 
 import { Header } from '@/components/Header';
 import { TrafficFeed } from '@/components/TrafficFeed';
@@ -31,6 +31,59 @@ export default function WarRoom() {
   const [pinnedId, setPinnedId] = useState<string | null>(null);
 
   const knownIps = [...new Set([...state.knownIps, ...state.mitigations.map((m) => m.ip).filter(Boolean)])];
+
+  // Lifted RedTeamConsole State
+  const [busy, setBusy] = useState<RedTeamAction | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [autoRun, setAutoRun] = useState(false);
+  const [autoIterations, setAutoIterations] = useState(0);
+
+  async function run(action: RedTeamAction, autoHistory?: { payload: string; result: string }[]) {
+    setBusy(action);
+    setError(null);
+    try {
+      const response = await fetch('/api/red-team', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ action, ips: knownIps, history: autoHistory }),
+      });
+      const body = (await response.json()) as RedTeamResponse;
+      if (!response.ok || body.error) throw new Error(body.error ?? `HTTP ${response.status}`);
+
+      if (action === 'reset') {
+        if (body.reset?.some((r) => !r.ok)) setError('Reset failed for some IPs — is the orchestrator running?');
+        actions.clear();
+        setPinnedId(null);
+        void actions.refreshRules();
+        setAutoRun(false);
+      } else {
+        actions.recordEdge(body.results);
+        return body.results;
+      }
+    } catch (e) {
+      setError((e as Error).message);
+      setAutoRun(false);
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  useEffect(() => {
+    if (!autoRun) return;
+    let active = true;
+    const timer = setTimeout(async () => {
+      const attackHistory = state.edge.history
+        .filter(r => r.payload)
+        .map(r => ({ payload: r.payload!, result: r.verdict }));
+      const res = await run('auto', attackHistory);
+      if (active && res && res[0]) {
+        setAutoIterations(i => i + 1);
+      } else if (!res) {
+        setAutoRun(false);
+      }
+    }, 1500);
+    return () => { active = false; clearTimeout(timer); };
+  }, [autoRun, autoIterations, state.edge.history]);
 
   // The entry the analyzer shows: the pinned one, else the most recent entry worth
   // inspecting, so the panel follows the live fight instead of freezing on the first hit.
@@ -64,7 +117,7 @@ export default function WarRoom() {
 
   return (
     <div className="flex flex-col min-h-screen bg-zinc-950 text-zinc-100">
-      <div className="flex-none sticky top-0 z-50 bg-zinc-950/80 backdrop-blur-md border-b border-zinc-800/80">
+      <div className="flex-none sticky top-0 z-50 bg-zinc-950 border-b border-zinc-800">
         <Header connection={state.connection} analystMs={lastAnalystMs} />
       </div>
 
@@ -85,11 +138,14 @@ export default function WarRoom() {
                 history={state.edge.history}
                 knownIps={knownIps}
                 onResults={actions.recordEdge}
-                onReset={() => {
-                  actions.clear();
-                  setPinnedId(null);
-                  void actions.refreshRules();
-                }}
+                onReset={() => {}}
+                busy={busy}
+                error={error}
+                autoRun={autoRun}
+                autoIterations={autoIterations}
+                run={run}
+                setAutoRun={setAutoRun}
+                setAutoIterations={setAutoIterations}
               />
             </div>
           </DialogContent>
@@ -112,9 +168,6 @@ export default function WarRoom() {
         <div className="col-span-3 relative z-10">
           <ActiveMitigations cards={state.mitigations} now={now} edgeBlocks={edgeBlockCount} campaigns={Object.values(state.campaigns)} />
         </div>
-
-        <div className="fixed top-1/4 left-1/4 w-96 h-96 bg-violet-500/10 rounded-full blur-[120px] pointer-events-none" />
-        <div className="fixed bottom-1/4 right-1/4 w-96 h-96 bg-emerald-500/5 rounded-full blur-[120px] pointer-events-none" />
       </main>
     </div>
   );

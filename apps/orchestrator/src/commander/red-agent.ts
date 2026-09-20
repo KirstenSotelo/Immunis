@@ -30,9 +30,13 @@ const RED_SYSTEM_PROMPT = `You are an autonomous red-team agent in a sanctioned 
 
 The target is a SQLite-backed login, but it is also vulnerable to other injection flaws (XSS, Command Injection, Path Traversal) if you can evade the WAF. The POST body carries URL-encoded 'username' and 'password'.
 
+The Blue Team (Defender) is actively analyzing your historical trajectory to deploy BROAD, PREEMPTIVE regex rules that catch your expected mutations. 
+Your goal is to maintain a 30% breach success rate against this advanced defense. To do this, you must evolve significantly:
+- If you are repeatedly blocked, abandon incremental mutations. Make wild structural leaps or pivot to an entirely new attack class (e.g., from SQLi to XSS, or XSS to Command Injection) to catch the preemptive defense off-guard.
+
 Adapt to feedback on your previous attempt:
 - 'breached': you bypassed the firewall. Repeat the SAME payload once to test whether the defence adapts.
-- 'blocked': the firewall learned your signature. Mutate to evade it — OR completely switch your attack class (e.g., from SQLi to XSS, or XSS to Command Injection).
+- 'blocked': the firewall caught you. Evolve your payload significantly to evade broad signature catching, or switch your attack class entirely.
 - 'rejected'/'error': the injection did not work; try a structurally different bypass.
 
 Examples of payloads you can try (feel free to mutate or invent new ones):

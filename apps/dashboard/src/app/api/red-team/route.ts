@@ -123,15 +123,16 @@ export async function POST(request: Request): Promise<NextResponse<RedTeamRespon
           throw new Error(`Orchestrator returned ${agentRes.status}: ${errText}`);
         }
         const { thought, payload, source } = await agentRes.json();
-        // The autonomous attacker keeps one identity across its mutation ladder, so its
-        // blocks and breaches accumulate as a single evolving attacker.
-        const result = await fire({ label: 'AI Mutation', form: { username: payload, password: 'wrong' } }, '203.0.113.50');
+        // Generate a random IP for this mutation so if the Blue Agent falls back to an IP Block,
+        // it doesn't permanently kill the infinite demo loop.
+        const dynamicIp = `203.0.113.${Math.floor(Math.random() * 254) + 1}`;
+        const result = await fire({ label: 'AI Mutation', form: { username: payload, password: 'wrong' } }, dynamicIp);
 
         // Fire twice more to guarantee we cross the Commander's burst threshold (3 events).
         // This ensures the Blue AI wakes up and shows its reasoning on the dashboard!
         await Promise.all([
-          fire({ label: 'AI Mutation 2/3', form: { username: payload, password: 'wrong' } }, '203.0.113.50'),
-          fire({ label: 'AI Mutation 3/3', form: { username: payload, password: 'wrong' } }, '203.0.113.50')
+          fire({ label: 'AI Mutation 2/3', form: { username: payload, password: 'wrong' } }, dynamicIp),
+          fire({ label: 'AI Mutation 3/3', form: { username: payload, password: 'wrong' } }, dynamicIp)
         ]);
 
         return NextResponse.json({ results: [{ ...result, thought, payload }] });

@@ -13,7 +13,7 @@ interface PayloadAnalyzerProps {
 function stepStyle(step: AnalystStep): { color: string; Icon: typeof Shield } {
   if (step.ok === false) return { color: "text-rose-400", Icon: ShieldX }
   if (step.tool === "propose" || step.tool === "validate") return { color: "text-emerald-400", Icon: ShieldCheck }
-  return { color: "text-violet-300", Icon: Search }
+  return { color: "text-zinc-400", Icon: Search }
 }
 
 export function PayloadAnalyzer({ entry }: PayloadAnalyzerProps) {
@@ -32,10 +32,10 @@ export function PayloadAnalyzer({ entry }: PayloadAnalyzerProps) {
   const confidencePct = entry.confidence != null ? Math.round(entry.confidence * 100) : null
 
   return (
-    <div className="flex flex-col bg-zinc-950 p-4 gap-4 overflow-hidden border border-zinc-800/80 rounded-lg shadow-lg h-fit">
+    <div className="flex flex-col bg-zinc-950 p-4 gap-4 overflow-hidden border border-zinc-800 rounded-lg shadow-sm h-fit">
       <div className="flex items-center justify-between shrink-0">
         <h2 className="text-sm font-semibold text-zinc-200 flex items-center gap-2">
-          <Cpu className="h-4 w-4 text-violet-400" />
+          <Cpu className="h-4 w-4 text-zinc-100" />
           Payload Analyzer
         </h2>
         {analyst ? (
@@ -84,7 +84,7 @@ export function PayloadAnalyzer({ entry }: PayloadAnalyzerProps) {
       {/* The real intercepted request */}
       <div className="flex flex-col gap-2">
         <div className="text-xs font-medium text-zinc-400">Intercepted request</div>
-        <div className="bg-zinc-950 border border-zinc-800/80 rounded-md p-3 font-mono text-[11px] leading-relaxed">
+        <div className="bg-zinc-950 border border-zinc-800 rounded-md p-3 font-mono text-[11px] leading-relaxed">
           {evidence ? (
             <pre className="text-zinc-300 whitespace-pre-wrap break-all">
 {`${evidence.method} ${evidence.target}
@@ -106,7 +106,7 @@ ${evidence.payload || "(no body)"}`}
             <span className="text-[10px] text-amber-400/80 font-mono normal-case">fallback: {analyst.degradedReason}</span>
           )}
         </div>
-        <div className="bg-[#0a0a0f] border border-violet-900/30 rounded-md p-3 font-mono text-[11px] leading-relaxed shadow-[inset_0_0_20px_rgba(139,92,246,0.05)]">
+        <ScrollArea className="bg-zinc-950 border border-zinc-800 rounded-md p-3 font-mono text-[11px] leading-relaxed shadow-sm max-h-[300px]">
           {analyst ? (
             <div className="flex flex-col gap-2">
               {analyst.trace.map((step) => {
@@ -136,7 +136,7 @@ ${evidence.payload || "(no body)"}`}
               attack pattern warrants it — a burst, a stage escalation, a new attack class, or a distributed campaign.
             </div>
           )}
-        </div>
+        </ScrollArea>
       </div>
     </div>
   )

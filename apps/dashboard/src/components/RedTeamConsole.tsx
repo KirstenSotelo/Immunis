@@ -20,59 +20,16 @@ interface Props {
   knownIps: string[];
   onResults: (results: RedTeamResult[]) => void;
   onReset: () => void;
+  busy: RedTeamAction | null;
+  error: string | null;
+  autoRun: boolean;
+  autoIterations: number;
+  run: (action: RedTeamAction, autoHistory?: { payload: string; result: string }[]) => Promise<any>;
+  setAutoRun: (v: boolean) => void;
+  setAutoIterations: (v: number) => void;
 }
 
-export function RedTeamConsole({ history, knownIps, onResults, onReset }: Props) {
-  const [busy, setBusy] = useState<RedTeamAction | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [autoRun, setAutoRun] = useState(false);
-  const [autoIterations, setAutoIterations] = useState(0);
-
-  async function run(action: RedTeamAction, autoHistory?: { payload: string; result: string }[]) {
-    setBusy(action);
-    setError(null);
-    try {
-      const response = await fetch('/api/red-team', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ action, ips: knownIps, history: autoHistory }),
-      });
-      const body = (await response.json()) as RedTeamResponse;
-      if (!response.ok || body.error) throw new Error(body.error ?? `HTTP ${response.status}`);
-
-      if (action === 'reset') {
-        if (body.reset?.some((r) => !r.ok)) setError('Reset failed for some IPs — is the orchestrator running?');
-        onReset();
-        setAutoRun(false);
-      } else {
-        onResults(body.results);
-        return body.results;
-      }
-    } catch (e) {
-      setError((e as Error).message);
-      setAutoRun(false);
-    } finally {
-      setBusy(null);
-    }
-  }
-
-  useEffect(() => {
-    if (!autoRun) return;
-    let active = true;
-    const timer = setTimeout(async () => {
-      const attackHistory = history
-        .filter(r => r.payload)
-        .map(r => ({ payload: r.payload!, result: r.verdict }));
-      const res = await run('auto', attackHistory);
-      if (active && res && res[0]) {
-        setAutoIterations(i => i + 1);
-      } else if (!res) {
-        setAutoRun(false);
-      }
-    }, 1500);
-    return () => { active = false; clearTimeout(timer); };
-  }, [autoRun, autoIterations]);
-
+export function RedTeamConsole({ history, knownIps, onResults, onReset, busy, error, autoRun, autoIterations, run, setAutoRun, setAutoIterations }: Props) {
   const disabled = busy !== null;
 
   return (
@@ -89,13 +46,13 @@ export function RedTeamConsole({ history, knownIps, onResults, onReset }: Props)
         <Button variant="destructive" size="sm" disabled={disabled} onClick={() => run('attack')} className="text-xs">
           {busy === 'attack' ? 'Sending…' : 'SQLi attack'}
         </Button>
-        <Button variant="outline" size="sm" disabled={disabled} onClick={() => run('burst')} className="text-xs border-rose-900/50 hover:bg-rose-950 hover:text-rose-400">
+        <Button variant="outline" size="sm" disabled={disabled} onClick={() => run('burst')} className="text-xs border-zinc-800 hover:bg-zinc-900 hover:text-zinc-100">
           {busy === 'burst' ? 'Firing…' : 'Burst ×3'}
         </Button>
       </div>
 
       <Button variant="outline" size="sm" disabled={disabled} onClick={() => run('botnet')}
-        className="w-full text-xs border-rose-900/50 hover:bg-rose-950 hover:text-rose-400 gap-2 mt-[-8px]">
+        className="w-full text-xs border-zinc-800 hover:bg-zinc-900 hover:text-zinc-100 gap-2 mt-[-8px]">
         {busy === 'botnet' ? 'Spraying…' : 'Botnet ×4 (distributed campaign)'}
       </Button>
 
@@ -105,7 +62,7 @@ export function RedTeamConsole({ history, knownIps, onResults, onReset }: Props)
           size="sm"
           onClick={() => { setAutoIterations(0); setAutoRun(true); }}
           disabled={disabled || autoRun}
-          className="flex-1 border-violet-900/50 hover:bg-violet-950 hover:text-violet-400 gap-2"
+          className="flex-1 border-zinc-800 hover:bg-zinc-900 hover:text-zinc-100 gap-2"
         >
           <BrainCircuit className="h-4 w-4" />
           {autoRun ? `Red agent attacking… (${autoIterations})` : 'Unleash AI (adaptive attacker)'}

@@ -62,10 +62,6 @@
 
 @layer utilities {
   .glass-panel {
-    @apply bg-zinc-900/60 backdrop-blur-md border border-zinc-800/80 shadow-lg;
-  }
-  
-  .glow-text {
-    @apply text-transparent bg-clip-text bg-gradient-to-r;
+    @apply bg-zinc-950 border border-zinc-800 shadow-sm;
   }
 }

@@ -398,19 +398,8 @@ export class IncidentCommander extends DurableObject<Env> {
 			const analyst: AnalystReport = { ...outcome.report, validation: applied.validation };
 			if (applied.plan.source !== outcome.plan.source) analyst.source = applied.plan.source;
 
-			// A pattern rule stops the technique, but Member 1's hot path enforces per-address
-			// blocks via `block_ip_<ip>`. Once this IP has earned `block`, block it as well.
-			if (decision.stage === 'block' && applied.mitigation?.kind === 'pattern_rule') {
-				const ipBlock = await deployIpBlock(this.env, {
-					ip: incident.ip,
-					incidentId: incident.id,
-					plan: { ...applied.plan, kind: 'block_ip', action: 'block' },
-					reason: applied.plan.diagnosis.slice(0, 300),
-				});
-				await recordMitigation(this.env, ipBlock, applied.plan.diagnosis, applied.validation);
-				await this.trackMitigation(ipBlock);
-				reasons.push(`stage is block: also blocked ${incident.ip} at the edge`);
-			}
+			// IP blocks have been manually disabled for the demo.
+			// Normally, we would deploy a block_ip_<ip> here if decision.stage === 'block'.
 
 			incident.plan = applied.plan;
 			incident.validation = applied.validation;
@@ -476,8 +465,8 @@ export class IncidentCommander extends DurableObject<Env> {
 					falsePositives: validation.falsePositives.slice(0, 3),
 				});
 			}
-			// Degrade to an IP block using the same action and TTL.
-			effectivePlan = { ...plan, kind: 'block_ip', pattern: undefined, flags: undefined, source: `${plan.source}+downgraded` };
+			// Degrade to observe instead of IP block (manually disabled by user)
+			effectivePlan = { ...plan, kind: 'observe', pattern: undefined, flags: undefined, source: `${plan.source}+downgraded` };
 		}
 
 		if (effectivePlan.kind === 'observe') {

@@ -237,18 +237,19 @@ export function fallbackPlan(brief: IncidentBrief, proofSamples: string[] = []):
 	}
 
 	// --- 3. Nothing safe to publish: block the one address. ---
-	steps.push({ step: ++step, tool: 'propose', ok: true, summary: `no safe pattern available — degrading to an IP block on ${brief.ip} for ${ttlSeconds}s` });
+	// (Manually disabled for the demo, degrading to observe instead of block_ip)
+	steps.push({ step: ++step, tool: 'propose', ok: true, summary: `no safe pattern available — degrading to observe on ${brief.ip} for ${ttlSeconds}s` });
 	return {
 		plan: {
-			kind: 'block_ip',
-			action: 'block',
+			kind: 'observe',
+			action: 'block', // keeping action as 'block' ensures it logs as a failed block attempt
 			ttlSeconds,
 			attackClass: classification.attackClass,
 			confidence: classification.confidence,
 			source: 'commander-fallback',
 			diagnosis:
 				`${brief.ip} sent ${evidenceCount} suspicious request(s) (threat score ${brief.threatScore.toFixed(1)}, stage ${brief.stage}). ` +
-				`Classified ${classification.attackClass}; no payload signature passed validation, so the address is blocked for ${ttlSeconds}s.`,
+				`Classified ${classification.attackClass}; no payload signature passed validation. IP blocks are disabled for this demo, so degrading to observe for ${ttlSeconds}s.`,
 		},
 		steps,
 	};

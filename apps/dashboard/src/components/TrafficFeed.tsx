@@ -25,8 +25,8 @@ export function TrafficFeed({ entries, selectedId, onSelect }: TrafficFeedProps)
   }, [entries])
 
   return (
-    <div className="flex flex-col bg-zinc-950/40 border border-zinc-800/80 rounded-lg overflow-hidden shadow-lg h-fit">
-      <div className="flex items-center justify-between p-4 border-b border-zinc-800/80">
+    <div className="flex flex-col bg-zinc-950 border border-zinc-800 rounded-lg overflow-hidden shadow-sm h-fit">
+      <div className="flex items-center justify-between p-4 border-b border-zinc-800">
         <h2 className="text-sm font-semibold text-zinc-200">Live Threat Feed</h2>
         <Badge variant="outline" className="font-mono text-[10px]">{entries.length} events</Badge>
       </div>
@@ -46,9 +46,7 @@ export function TrafficFeed({ entries, selectedId, onSelect }: TrafficFeedProps)
                   onClick={() => onSelect(entry)}
                   className={`
                     group flex items-start gap-3 p-2.5 rounded-md cursor-pointer transition-all border text-xs font-mono
-                    ${isSelected ? 'bg-zinc-800/80 border-zinc-700' : 'border-transparent hover:bg-zinc-900/50'}
-                    ${isMalicious && !isSelected ? 'hover:bg-rose-950/30' : ''}
-                    ${isMalicious && isSelected ? 'bg-rose-950/40 border-rose-900/50' : ''}
+                    ${isSelected ? 'bg-zinc-900 border-zinc-700' : 'border-transparent hover:bg-zinc-900/50'}
                   `}
                 >
                   <div className="w-20 shrink-0 text-zinc-500">{clock(entry.at)}</div>
@@ -61,7 +59,7 @@ export function TrafficFeed({ entries, selectedId, onSelect }: TrafficFeedProps)
                         <Badge variant="destructive" className="h-4 text-[9px] px-1 font-sans">{entry.attackClass.toUpperCase()}</Badge>
                       )}
                       
-                      <span className={`${isMalicious ? "text-rose-300" : "text-zinc-500"}`}>
+                      <span className={isMalicious ? "text-zinc-300" : "text-zinc-500"}>
                         {entry.text}
                       </span>
                     </div>

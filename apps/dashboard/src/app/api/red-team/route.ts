@@ -68,7 +68,7 @@ async function resetIps(ips: string[]): Promise<{ ip: string; ok: boolean }[]> {
 }
 
 export async function POST(request: Request): Promise<NextResponse<RedTeamResponse>> {
-  let body: { action?: RedTeamAction; ips?: unknown };
+  let body: { action?: RedTeamAction; ips?: unknown; history?: any[] };
   try {
     body = await request.json();
   } catch {
@@ -92,7 +92,25 @@ export async function POST(request: Request): Promise<NextResponse<RedTeamRespon
       const targets = ips.length ? ips : ['::1', '127.0.0.1', 'unknown'];
       return NextResponse.json({ results: [], reset: await resetIps(targets) });
     }
+    case 'auto': {
+      try {
+        const agentRes = await fetch(`${ORCHESTRATOR_URL}/commander/red-agent`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ history: body.history || [] }),
+        });
+        if (!agentRes.ok) {
+          const errText = await agentRes.text();
+          throw new Error(`Orchestrator returned ${agentRes.status}: ${errText}`);
+        }
+        const { thought, payload } = await agentRes.json();
+        const result = await fire({ label: 'AI Mutation', form: { username: payload, password: 'wrong' } });
+        return NextResponse.json({ results: [{ ...result, thought, payload }] });
+      } catch (e) {
+        return NextResponse.json({ results: [], error: 'Red Agent failed: ' + (e as Error).message }, { status: 500 });
+      }
+    }
     default:
-      return NextResponse.json({ results: [], error: 'action must be benign | attack | burst | reset' }, { status: 400 });
+      return NextResponse.json({ results: [], error: 'action must be benign | attack | burst | auto | reset' }, { status: 400 });
   }
 }

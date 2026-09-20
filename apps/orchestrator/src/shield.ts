@@ -53,7 +53,7 @@ export async function handleShieldRequest(request: Request, env: Env, fetchOrigi
     }
 
     // 2. Test against Pattern Rules
-    const rules = await readPatternRules(env, 60); // 60s cache TTL on the edge
+    const rules = await readPatternRules(env, 0); // KV Cache disabled for instant demo feedback
     const matchInput = decodedUrl + '\n' + decodedPayload;
     const hit = matchPatternRules(rules.filter(rule => rule.action === 'block'), matchInput);
 

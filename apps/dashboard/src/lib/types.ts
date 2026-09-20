@@ -128,7 +128,7 @@ export interface MitigationCard {
 // Red Team console (POST /api/red-team)
 // ---------------------------------------------------------------------------
 
-export type RedTeamAction = 'benign' | 'attack' | 'burst' | 'reset';
+export type RedTeamAction = 'benign' | 'attack' | 'burst' | 'reset' | 'auto';
 export type Verdict = 'breached' | 'blocked' | 'rejected' | 'error';
 
 export interface RedTeamResult {
@@ -138,6 +138,8 @@ export interface RedTeamResult {
   verdict: Verdict;
   ms: number;
   note: string;
+  payload?: string;
+  thought?: string;
 }
 
 export interface RedTeamResponse {

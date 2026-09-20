@@ -15,6 +15,7 @@ import type { Env, SuspiciousEvent } from '../types';
 import { sanitizeEvent } from './policy';
 import { listAudit, listIncidents, summaryStats } from './ledger';
 import { readPatternRules } from './mitigation';
+import { generateAttackPayload, type AttackHistory } from './red-agent';
 
 export const COMMANDER_PREFIX = '/commander';
 
@@ -130,6 +131,18 @@ export async function handleCommanderRequest(request: Request, env: Env): Promis
 			case 'simulate':
 				return simulate(request, env, url);
 
+			// POST /commander/red-agent — autonomous AI attacker
+			case 'red-agent': {
+				if (request.method !== 'POST') return json({ error: 'POST required' }, 405);
+				let body: { history?: AttackHistory[] };
+				try {
+					body = await request.json();
+				} catch {
+					return json({ error: 'invalid JSON body' }, 400);
+				}
+				return json(await generateAttackPayload(env, body.history || []));
+			}
+
 			default:
 				return json({ error: `unknown route ${route}`, routes: ROUTES }, 404);
 		}
@@ -152,6 +165,7 @@ const ROUTES = [
 	'GET  /commander/feed?limit=50',
 	'GET  /commander/stream   (websocket)',
 	'POST /commander/simulate  body: {ip,url,method,payload} | {events:[...]}  ?direct=1 to skip the queue',
+	'POST /commander/red-agent body: { history: [{ payload, result }] }',
 ];
 
 /**

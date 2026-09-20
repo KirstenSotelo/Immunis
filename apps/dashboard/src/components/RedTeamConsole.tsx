@@ -1,12 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { clock } from '@/lib/format';
 import type { RedTeamAction, RedTeamResponse, RedTeamResult, Verdict } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { AlertCircle, Terminal } from 'lucide-react';
+import { AlertCircle, Terminal, BrainCircuit } from 'lucide-react';
 
 const VERDICT: Record<Verdict, { label: string; color: string; variant: any }> = {
   breached: { label: 'breached', color: 'text-rose-500', variant: 'destructive' },
@@ -25,15 +25,17 @@ interface Props {
 export function RedTeamConsole({ history, knownIps, onResults, onReset }: Props) {
   const [busy, setBusy] = useState<RedTeamAction | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [autoRun, setAutoRun] = useState(false);
+  const [autoIterations, setAutoIterations] = useState(0);
 
-  async function run(action: RedTeamAction) {
+  async function run(action: RedTeamAction, autoHistory?: { payload: string; result: string }[]) {
     setBusy(action);
     setError(null);
     try {
       const response = await fetch('/api/red-team', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ action, ips: knownIps }),
+        body: JSON.stringify({ action, ips: knownIps, history: autoHistory }),
       });
       const body = (await response.json()) as RedTeamResponse;
       if (!response.ok || body.error) throw new Error(body.error ?? `HTTP ${response.status}`);
@@ -41,15 +43,39 @@ export function RedTeamConsole({ history, knownIps, onResults, onReset }: Props)
       if (action === 'reset') {
         if (body.reset?.some((r) => !r.ok)) setError('Reset failed for some IPs — is the orchestrator running?');
         onReset();
+        setAutoRun(false);
       } else {
         onResults(body.results);
+        return body.results;
       }
     } catch (e) {
       setError((e as Error).message);
+      setAutoRun(false);
     } finally {
       setBusy(null);
     }
   }
+
+  useEffect(() => {
+    if (!autoRun) return;
+    if (autoIterations >= 5) {
+      setAutoRun(false);
+      return;
+    }
+    let active = true;
+    const timer = setTimeout(async () => {
+      const attackHistory = history
+        .filter(r => r.payload)
+        .map(r => ({ payload: r.payload!, result: r.verdict }));
+      const res = await run('auto', attackHistory);
+      if (active && res && res[0]) {
+        setAutoIterations(i => i + 1);
+      } else if (!res) {
+        setAutoRun(false);
+      }
+    }, 1500);
+    return () => { active = false; clearTimeout(timer); };
+  }, [autoRun, autoIterations]);
 
   const disabled = busy !== null;
 
@@ -71,6 +97,17 @@ export function RedTeamConsole({ history, knownIps, onResults, onReset }: Props)
           {busy === 'burst' ? 'Firing…' : 'Burst ×3'}
         </Button>
       </div>
+
+      <Button 
+        variant="outline" 
+        size="sm" 
+        onClick={() => { setAutoIterations(0); setAutoRun(true); }}
+        disabled={disabled || autoRun}
+        className="w-full border-violet-900/50 hover:bg-violet-950 hover:text-violet-400 gap-2 mt-[-8px]"
+      >
+        <BrainCircuit className="h-4 w-4" />
+        {autoRun ? `AI Attacking... (${autoIterations}/5)` : 'Unleash AI (Auto-Attack)'}
+      </Button>
 
       <div className="text-[11px] text-zinc-500 leading-relaxed bg-zinc-900/50 p-3 rounded-md border border-zinc-800">
         The Commander opens an incident after 3 hostile requests in 60s, so use <strong>Burst ×3</strong>, wait a couple of seconds for the queue to drain,
@@ -97,6 +134,16 @@ export function RedTeamConsole({ history, knownIps, onResults, onReset }: Props)
                 </Badge>
                 <span className="flex-1 text-zinc-400 break-words">
                   {r.label} · <span className="text-zinc-500">{r.note}</span>
+                  {r.thought && (
+                    <div className="mt-1 pl-2 border-l border-zinc-800 text-zinc-400 italic text-[11px]">
+                      "{r.thought}"
+                    </div>
+                  )}
+                  {r.payload && (
+                    <div className="mt-1 pl-2 font-mono text-[9px] text-rose-400/80">
+                      {r.payload}
+                    </div>
+                  )}
                 </span>
                 <span className="shrink-0 text-zinc-600">
                   {r.ms}ms

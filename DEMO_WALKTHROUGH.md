@@ -1,84 +1,59 @@
-# 🎭 Red vs. Blue: The Live Demo Script
+# Immunis — three-minute demo walkthrough
 
-This is your foolproof, step-by-step script for presenting to the judges. It is designed to fit within a 3-minute pitch while maximizing the "wow" factor by showing two autonomous AI agents battling in real-time.
+[Watch the recorded demo](https://youtu.be/5-JEJ8wvWRo).
 
----
+Immunis is the defense product. Red is a separate demonstration tool. The recording uses deterministic Blue synthesis and scripted Red fallback, not live model inference.
 
-### Step 0: The Setup (Before Judges Arrive)
-Ensure your environment is running smoothly:
-1. **Target**: `cd apps/target && npm start` (Running on 3001)
-2. **Orchestrator**: `cd apps/orchestrator && npm run dev` (Running on 8787)
-3. **Dashboard**: `cd apps/dashboard && npm run dev` (Running on 3000)
-4. Open the War Room Dashboard in your browser (`http://localhost:3000`).
-5. Open the Red Team Simulator menu and click **Reset Demo** to clear the database and memory.
+## Before presenting
 
----
+Follow the [README setup](README.md#-quick-start). Use Node 24; start target on 3001, Worker on 8787 and dashboard on 3000. Initialize D1 and configure `.dev.vars`.
 
-### Step 1: The Hook (0:00 - 0:30)
-*Introduce the problem: WAFs are static and attackers are dynamic.*
+`ANALYST_MODE=fallback` makes Blue deterministic; `auto` attempts Workers AI. Red has a separate model/fallback path. Check source attribution before narrating AI behavior.
 
-**🗣️ What you say:**
-> "Traditional Web Application Firewalls rely on static, manually written regex rules. But modern attackers are constantly evolving. If an attacker discovers a crack, a static WAF can't adapt in real-time. We built an autonomous Blue Team AI that monitors traffic, detects zero-days, and synthesizes its own WAF rules on the fly."
+Stop automatic attacks, then use **Reset demo**. This resets selected IPs and global tracker/rules/feed, not the entire D1 ledger. Rehearse the sequence and test benign traffic after protection.
 
-**🖱️ What you do:**
-- Point to the live feed in the dashboard.
-- Show how the traffic flows (Target Origin on the right, Cloudflare Edge on the left).
+## 0:00–0:30 — The problem
 
----
+**Say:** “A vulnerability can remain exposed while developers prepare a fix. Immunis investigates suspicious traffic and deploys temporary protections. The attacker console helps us test the defense.”
 
-### Step 2: The Baseline (0:30 - 1:00)
-*Show normal traffic vs. a standard attack.*
+**Show:** Traffic feed, Payload Analyzer and Active Mitigations.
 
-**🗣️ What you say:**
-> "Here is our Red Team Simulator. Let's send some normal login traffic."
-**🖱️ What you do:** Click **Benign Login**. 
-*(The feed shows a 401 Rejected—normal behavior for wrong credentials).*
+## 0:30–1:00 — Before protection
 
-**🗣️ What you say:**
-> "Now, let's try a standard SQL injection."
-**🖱️ What you do:** Click **SQLi Attack**.
-*(The feed shows `200 BREACHED`.)*
+**Do:** Click **Benign login**, then **SQLi attack**.
 
-**🗣️ What you say:**
-> "It got right through. The edge didn't know about this payload yet. But our Commander AI is constantly analyzing the telemetry. If we send a burst of attacks, it will realize we are under an active threat."
+**Say:** “Wrong credentials return 401: the request reached the application normally. This SQL injection targets a real vulnerable SQLite query. Before protection activates, it can bypass the login.”
 
----
+Describe the displayed outcome. A 200 is meaningful here because the target reports successful authentication; status 200 alone does not prove compromise.
 
-### Step 3: Waking the Blue Agent (1:00 - 1:45)
-*Demonstrate the Blue Agent's mitigation pipeline.*
+## 1:00–1:50 — Investigation
 
-**🖱️ What you do:** Click **Burst ×3**.
-*(Wait a few seconds. Watch the right side of the screen.)*
+**Do:** Click **Burst ×3**, wait for the incident, then select it.
 
-**🗣️ What you say:**
-> "Look at the feed! The Commander noticed the burst and opened an incident. It extracted the payloads, scored them, and handed the evidence to our Analyst AI (Llama 3.3). The AI analyzed the attack vector and just synthesized a brand new regular expression to neutralize the threat. It then automatically deployed this rule to our Cloudflare KV."
+**Say:** “Commander tracks the suspicious requests and opens an investigation. Here are the captured payload, analysis source, steps and validation result. A passing proposal is published for Shield to enforce.”
 
-**🖱️ What you do:** Click **SQLi Attack** again.
-*(The feed instantly shows `403 BLOCKED`.)*
+In fallback mode, say “deterministic synthesizer.” Say “Workers AI” only if the report identifies that source. Show rejection/revision only when they occur.
 
-**🗣️ What you say:**
-> "And now, that exact same attack is blocked instantly at the edge. No human intervention required."
+## 1:50–2:25 — Check the result
 
----
+**Do:** After a blocking rule appears, click **SQLi attack**, then **Benign login**.
 
-### Step 4: Unleashing the Red Agent (1:45 - 2:45)
-*The grand finale: Watch the Red Agent try to bypass the new rule.*
+**Say:** “The repeated attack now receives 403 from Shield. The ordinary request still reaches the application and receives 401. Both results matter: protection should stop the attack without locking out normal users.”
 
-**🗣️ What you say:**
-> "But what happens when the attacker is also an AI? A static WAF would be bypassed the second the attacker mutates their payload. Let's turn on our Autonomous Attacker—an LLM designed to bypass firewalls."
+If benign traffic is blocked, explain the false positive instead of presenting success. Local stress testing has found an overly broad rule.
 
-**🖱️ What you do:** Click **Unleash AI (Auto-Attack)**.
+## 2:25–2:45 — Optional adaptive test
 
-**🗣️ What you say:**
-> "Watch its thought process. It realizes its standard payload was blocked. It says, *'I must obfuscate this to evade detection'* and mutates the payload using hex encoding or comments."
+**Do:** Use **Botnet ×4** after reset, or briefly run **Unleash AI**, then **Terminate**.
 
-*(Let the loop run. Point to the UI showing the AI's internal thoughts and the mutated payloads).*
+**Say:** “The separate harness can vary payloads and simulate multiple addresses. Immunis correlates evidence and can add protections.”
 
-**🗣️ What you say:**
-> "It threw the mutated payload. It successfully breached the firewall! But our Blue Agent immediately wakes up, analyzes the *new* breach, and deploys another rule to block it. When the Red Agent tries again... it's blocked again. This is a live, evolutionary arms race happening completely autonomously."
+Simulated addresses require `DEMO_ALLOW_SOURCE_SPOOF=true`. Auto mode sends three requests from one simulated address per round. Its UI currently hides the generator source, so the button name does not prove AI ran. Additional attack classes on the login endpoint have simulated success outcomes.
 
----
+## 2:45–3:00 — Close
 
-### Step 5: The Closer (2:45 - 3:00)
-**🗣️ What you say:**
-> "We aren't just building a static defense. We've built a dynamic immune system for the web that evolves just as fast as the attackers do. Thank you."
+**Say:** “Immunis connects incident memory, investigation, validation and temporary enforcement. Next comes stronger application-specific validation and live deployment evaluation.”
+
+## Scope of the demonstration
+
+This shows a local attack-to-protection workflow. It does not establish general zero-day detection, source-code repair, model training, fixed success percentages or instant global KV propagation. Our Shield Worker enforces the rules; they are not published to Cloudflare's managed WAF service.

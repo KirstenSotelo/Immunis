@@ -55,10 +55,13 @@ test('fallbackPlan deploys a synthesized pattern rule and records its working', 
   assert.ok(steps.some((s) => s.tool === 'validate' && s.ok));
 });
 
-test('fallbackPlan degrades to an IP block when no safe pattern exists', () => {
+test('fallbackPlan observes without a rule when no safe pattern exists', () => {
   const brief = briefFor('', { events: [], classification: { attackClass: 'unknown', severity: 25, confidence: 0.2, indicators: [], fingerprint: 'x', pathTemplate: '/' } });
-  const { plan } = fallbackPlan(brief, []);
-  assert.equal(plan.kind, 'block_ip');
+  const { plan, steps } = fallbackPlan(brief, []);
+  assert.equal(plan.kind, 'observe');
+  assert.equal(plan.pattern, undefined);
+  assert.equal(plan.source, 'commander-fallback');
+  assert.ok(steps.some((step) => step.tool === 'propose' && /degrading to observe/.test(step.summary)));
 });
 
 test('the class signature is the last resort, not the first choice', () => {

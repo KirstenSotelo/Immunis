@@ -3,8 +3,8 @@
  * MEMBER 2: QUEUE CONSUMER — the hand-off from The Shield.
  * ==========================================================================
  *
- * Member 1's edge worker pushes suspicious requests onto ANALYSIS_QUEUE and returns
- * immediately, so nothing here is on a user's critical path. That buys us the time to
+ * Shield awaits ANALYSIS_QUEUE acceptance before forwarding the request. This
+ * consumer runs separately from that request path. That buys us the time to
  * do real work, and it means this handler's job is to be *correct*, not fast:
  *
  *   - Group by IP so each Durable Object is addressed once per batch, in order.

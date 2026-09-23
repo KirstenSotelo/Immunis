@@ -1,13 +1,14 @@
 {
   "name": "red-vs-blue-orchestrator",
   "version": "1.0.0",
-  "description": "Hack The North - Red vs Blue Agent",
+  "description": "Immunis defense engine — Shield, Commander and Analyst",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
     "typecheck": "tsc --noEmit",
+    "test": "node --import ./src/analyst/test-loader.mjs --test ./src/analyst/analyst.test.mjs ./src/shield.test.mjs ./src/commander/synthesizer.test.mjs",
     "db:init": "wrangler d1 execute INCIDENT_DB --local --file=./migrations/0001_init.sql",
     "db:init:remote": "wrangler d1 execute INCIDENT_DB --remote --file=./migrations/0001_init.sql"
   },

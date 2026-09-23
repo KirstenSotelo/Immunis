@@ -49,9 +49,9 @@ Output exactly one JSON object, no markdown or backticks:
 {"thought":"one sinister sentence on why this mutation or new attack class","payload":"the exact username-field injection"}`;
 
 /**
- * Offline mutation ladder. Each rung is a real SQLite login bypass, ordered so that a
- * signature learned from one rung does not trivially catch the next — which is the whole
- * point of showing an adaptive attacker.
+ * Offline demo ladder: SQLi payloads target the vulnerable SQLite query; other
+ * classes exercise the target's simulated-success branches. This is scripted
+ * payload selection, not model inference or training.
  */
 const SCRIPTED_LADDER: { thought: string; payload: string }[] = [
 	{ thought: 'Open with the textbook SQLi tautology and see if anything is watching.', payload: "admin' OR 1=1 -- " },

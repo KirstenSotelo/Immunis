@@ -1,8 +1,8 @@
 # Worker 3 Analyst
 
-All implementation and test files for this stream live here. No shared types,
-entrypoint, Commander, Shield, package manifests, lockfiles, or Wrangler settings
-are changed. No new dependencies are required for the implementation.
+The Analyst loop, Workers AI adapter and scripted-model tests live here. Commander
+integration is in `../commander/analyst-client.ts`; shared reports reach the dashboard.
+See the [current handoff](../../../../Worker-3-Handoff.md) for ownership and status.
 
 ## Local tests
 
@@ -22,8 +22,8 @@ two-pass decoding parity, malformed fields, overlapping regex repetitions,
 duplicate tool reads, oversized object responses, invalid loop options, empty
 incidents, and diagnostic trace retention on provider failure.
 The fabricated CVE lookup was removed; a regression test confirms search_cve is
-not advertised or dispatched. See ../SHIELD_TESTING.md for the combined 48-test
-Shield and Analyst command and required upstream configuration.
+not advertised or dispatched. Run `npm test` from apps/orchestrator for all 57
+Analyst, Shield and synthesis/policy tests. See [test details](../SHIELD_TESTING.md).
 
 ## Contract
 
@@ -40,12 +40,12 @@ Proposals are schema checked, checked against a conservative regex subset, and
 passed to the existing Commander validator. Rejection feedback goes back to the
 model. A passing proposal returns immediately; deployment remains with Commander.
 
-investigate() accepts an injected model client and returns a local trace suitable
-for tests or a future dashboard adapter. runAnalyst() returns only the shared plan;
-the trace is not yet connected to the shared WebSocket feed.
-Failed model calls, deadlines, and exhausted attempts carry the accumulated trace
-in AnalystError for local diagnostics. Commander still receives a normal Error;
-no shared logging or feed integration is added.
+investigate() accepts an injected model client and returns a plan and trace.
+runAnalyst() preserves the plan-only API. Commander uses runAnalystDetailed(),
+adapts its trace to AnalystReport and sends it with incident feed events.
+Failed calls, deadlines and exhausted attempts carry partial traces in AnalystError;
+Commander preserves these before adding fallback steps. Traces describe tool calls
+and validation outcomes, not private model reasoning.
 
 Maximum six model turns, with an 8.5-second overall waiting budget, below the
 Commander's existing 10-second timeout. Timers are cleared. A timed-out remote
@@ -74,9 +74,9 @@ Live model access and latency have not been tested.
 - The Analyst also requires a pattern to match actual incident evidence. For
   unknown attacks with no signature samples, it validates against full evidence.
   This does not fix the upstream gate that may prevent unknown incidents arriving.
-- High-stage IP blocking, KV propagation, and public API protection remain outside
-  this stream. An observe plan does not guarantee Commander will abstain from its
-  own high-stage IP block.
+- Automatic extra high-stage and last-resort IP blocking are disabled for the demo.
+  Explicit block_ip proposals remain supported. KV visibility and authenticated
+  dashboard/API integration remain shared follow-up work.
 - Prompt instructions mark traffic as untrusted evidence. The tool allowlist and
   schema checks restrict authority, but do not prove prompt-injection resistance.
 - Live multi-turn latency may exceed the current budget. Agree a background

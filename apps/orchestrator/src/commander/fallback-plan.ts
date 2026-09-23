@@ -2,11 +2,11 @@
  * The Commander's degraded mode. OWNER: Member 2.
  *
  * When the Analyst is unavailable — model rate-limited, not authenticated, returning
- * prose instead of JSON, or simply not merged yet — the Commander still has to act.
+ * prose instead of JSON — the Commander still has to act.
  * A security system that stops defending because its LLM hiccuped is not a security
  * system, so the escalation path is:
  *
- *     Analyst (LLM)  ->  synthesize from observed evidence  ->  class signature  ->  IP block
+ *     Analyst (LLM) -> evidence-derived pattern -> class signature -> observe
  *
  * The middle step matters more than it looks. A fixed table of per-class signatures can
  * only ever catch the payloads someone thought of in advance, so an attacker beats it by
@@ -57,8 +57,8 @@ const CLASS_SIGNATURES: Record<AttackClass, { pattern: string; flags: string } |
 		pattern: String.raw`\b(?:sqlmap|nikto|nmap|masscan|acunetix|nessus|dirbuster|gobuster|wpscan|nuclei)\b`,
 		flags: 'i',
 	},
-	// No trustworthy signature exists for traffic we could not classify. Blocking the
-	// single address is the honest response; inventing a pattern is how you take a site down.
+	// No class signature exists for unclassified traffic. If evidence synthesis also
+	// fails, the current demo policy observes without publishing a pattern.
 	unknown: null,
 };
 
@@ -79,9 +79,8 @@ const REGEX_META = /[.*+?^${}()|[\]\\/]/g;
  *   - word-char edges           -> `\b`   (so `or` does not fire inside `colour`)
  *
  * Everything else is escaped to a literal. There are no groups, no alternation and no
- * nested quantifiers — every `\s*` sits between two required literals, so there is
- * nothing for a backtracking engine to explode on. It is still validated like any
- * other proposal, and a pattern this derives can and does get rejected.
+ * nested quantifiers. This is not a proof of bounded regex cost or specificity.
+ * Every candidate still passes the shared validator and can be rejected.
  */
 export function generalizeLiteral(sample: string): string | null {
 	const trimmed = sample.trim();
@@ -236,8 +235,7 @@ export function fallbackPlan(brief: IncidentBrief, proofSamples: string[] = []):
 		steps.push({ step: ++step, tool: 'validate', ok: false, summary: `class signature rejected — ${validation.reasons.join('; ')}` });
 	}
 
-	// --- 3. Nothing safe to publish: block the one address. ---
-	// (Manually disabled for the demo, degrading to observe instead of block_ip)
+	// --- 3. Nothing safe to publish: observe (demo IP fallback is disabled). ---
 	steps.push({ step: ++step, tool: 'propose', ok: true, summary: `no safe pattern available — degrading to observe on ${brief.ip} for ${ttlSeconds}s` });
 	return {
 		plan: {

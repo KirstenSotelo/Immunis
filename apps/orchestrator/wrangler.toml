@@ -44,8 +44,8 @@ new_classes = ["IncidentCommander", "CampaignTracker"]
 
 # ---------------------------------------------------------------------------
 # Member 2: D1 incident ledger (long-term memory)
-# Create with:  npx wrangler d1 create red-vs-blue-incidents
-# then paste the id below. Every write is fail-soft, so the engine runs without it.
+# The name/id below refer to the existing deployment. For a new account, create a
+# D1 database and replace both values. Ledger writes are fail-soft.
 # ---------------------------------------------------------------------------
 [[d1_databases]]
 binding = "INCIDENT_DB"
@@ -73,9 +73,9 @@ binding = "AI"
 
 # ---------------------------------------------------------------------------
 # Member 3: Vectorize.
-# NOTE: Vectorize has no local emulation. Uncommenting this means `wrangler dev` must
-# be run with --remote. Left off so the local demo works without a Cloudflare account;
-# Member 3 should enable it when wiring up similarity search.
+# Reserved for future retrieval work; no application code currently queries this.
+# Enabling a binding alone does not implement similarity search. Check the current
+# Cloudflare development setup before adding a real index.
 # ---------------------------------------------------------------------------
 # [[vectorize]]
 # binding = "ATTACK_VECTORS"

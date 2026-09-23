@@ -215,7 +215,7 @@ export function classify(event: SuspiciousEvent): Classification {
 	}
 
 	const indicators = best.hits;
-	// 1 indicator -> 0.55, 2 -> 0.75, 3 -> 0.87, capped at 0.97.
+	// 1 indicator -> 0.55, 2 -> ~0.80, 3 -> ~0.91, capped at 0.97.
 	const confidence = Math.min(0.97, 1 - Math.pow(0.45, indicators.length));
 	const severity = Math.min(100, Math.round(best.detector.severity + (indicators.length - 1) * 4));
 

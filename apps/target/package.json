@@ -1,7 +1,7 @@
 {
   "name": "red-vs-blue-target",
   "version": "1.0.0",
-  "description": "Vulnerable Origin Target for Red vs Blue Demo",
+  "description": "Deliberately vulnerable practice target for the Immunis demo",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"

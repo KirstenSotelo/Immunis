@@ -4,8 +4,8 @@ import type { ReactNode } from 'react';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'War Room — Red vs. Blue',
-  description: 'Live view of the autonomous zero-day patching engine: attacks in, mitigations out.',
+  title: 'Immunis — War Room',
+  description: 'Investigate suspicious traffic, inspect decisions and monitor temporary protections.',
 };
 
 export const viewport: Viewport = {

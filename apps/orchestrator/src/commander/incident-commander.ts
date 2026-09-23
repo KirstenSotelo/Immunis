@@ -424,8 +424,8 @@ export class IncidentCommander extends DurableObject<Env> {
 	 *
 	 * This is the guardrail. A pattern rule is only deployed if it compiles, matches
 	 * payloads from this incident, and matches nothing in the benign corpus. If it
-	 * fails, we log exactly why and fall back to blocking the single IP — degraded,
-	 * but never a self-inflicted outage.
+	 * fails, we log why and degrade to observe under the current demo policy.
+	 * Passing the sample checks does not prove a rule is free of false positives.
 	 */
 	private async applyPlan(
 		incident: IncidentRecord,
@@ -453,7 +453,7 @@ export class IncidentCommander extends DurableObject<Env> {
 					await this.trackMitigation(published);
 					return { plan, mitigation: published, validation, reasons };
 				}
-				reasons.push('campaign tracker unavailable; falling back to IP block');
+				reasons.push('campaign tracker unavailable; degrading to observe');
 			} else {
 				// The headline safety behaviour: we refuse the rule and say why.
 				reasons.push(`REJECTED proposed rule: ${validation.reasons.join('; ')}`);

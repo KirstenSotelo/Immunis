@@ -111,7 +111,7 @@ export async function handleShieldRequest(
 	}
 
 	// 2. Test against Pattern Rules
-	const rules = await readPatternRules(env, 0); // KV Cache disabled for instant demo feedback
+	const rules = await readPatternRules(env, 0); // No custom cache TTL; global KV visibility is still eventual.
 	const matchInput = decodedUrl + '\n' + decodedPayload;
 	const hit = matchPatternRules(rules.filter(rule => rule.action === 'block'), matchInput);
 

@@ -8,7 +8,7 @@ interface HeaderProps {
 
 export function Header({ connection, analystMs }: HeaderProps) {
   const status = {
-    live: { label: "Edge Active", color: "bg-emerald-500", text: "text-emerald-400" },
+    live: { label: "Feed Connected", color: "bg-emerald-500", text: "text-emerald-400" },
     offline: { label: "Offline", color: "bg-rose-500", text: "text-rose-400" },
     connecting: { label: "Connecting", color: "bg-amber-500", text: "text-amber-400" },
   }[connection]
@@ -21,7 +21,7 @@ export function Header({ connection, analystMs }: HeaderProps) {
         </div>
         <div className="flex flex-col">
           <span className="text-sm font-semibold tracking-wide text-zinc-100 flex items-center gap-2">
-            IMMUNNIS <span className="text-zinc-600 font-normal">War Room</span>
+            IMMUNIS <span className="text-zinc-600 font-normal">War Room</span>
           </span>
         </div>
       </div>
@@ -39,7 +39,7 @@ export function Header({ connection, analystMs }: HeaderProps) {
         <div className="flex items-center gap-3 border-l border-zinc-800 pl-6">
           <div className="text-right">
             <div className="text-xs font-medium text-zinc-200">SecOps</div>
-            <div className="text-[10px] text-zinc-500 font-mono">admin@edge.immunnis.io</div>
+            <div className="text-[10px] text-zinc-500 font-mono">Demo console</div>
           </div>
           <div className="h-8 w-8 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center overflow-hidden">
             <Activity className="h-4 w-4 text-zinc-400" />

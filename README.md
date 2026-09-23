@@ -76,7 +76,7 @@ The Analyst proposes; Commander controls deployment. **Shield enforces the rules
 <details>
 <summary><strong>Expand local setup</strong></summary>
 
-You’ll need Node.js and npm. Keep the deliberately vulnerable target in a controlled local environment.
+You’ll need **Node.js 24** and npm (the tests use Node's TypeScript and SQLite support). Keep the deliberately vulnerable target in a controlled local environment.
 
 ```sh
 git clone https://github.com/KirstenSotelo/Immunis.git
@@ -89,7 +89,7 @@ Open three terminals at the repository root.
 
 ```sh
 cd apps/target
-npm install
+npm ci
 npm start
 ```
 
@@ -99,7 +99,7 @@ Copy `apps/orchestrator/.dev.vars.example` to `apps/orchestrator/.dev.vars`. Set
 
 ```sh
 cd apps/orchestrator
-npm install
+npm ci
 npm run db:init
 npm run dev
 ```
@@ -108,11 +108,17 @@ npm run dev
 
 ```sh
 cd apps/dashboard
-npm install
+npm ci
 npm run dev
 ```
 
 Open **http://127.0.0.1:3000**. Stop each service with `Ctrl+C`.
+
+For a different engine address, see `apps/dashboard/.env.example`. The current dashboard assumes a local Commander without an API key; authenticated dashboard access remains follow-up work.
+
+**Run the checks**
+
+From `apps/orchestrator`, run `npm test` and `npm run typecheck`. From `apps/dashboard`, run `npm run typecheck` and `npm run build`. Tests use scripted models and mocked Cloudflare bindings, not live AI.
 
 </details>
 

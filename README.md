@@ -33,16 +33,22 @@ Immunis is an application defense prototype built on Cloudflare. It remembers su
 
 **The Red Agent is separate testing tooling.** It challenges the defense with changing payloads; it is not part of the protection a website needs to run.
 
-## ✨ Features
+## ⚡ At a Glance
 
-| Feature | What it does |
+| Capability | What Immunis delivers |
 |---|---|
-| **Stateful defense** | Tracks incidents and correlates shared attack patterns across addresses. |
-| **Agent investigation** | Uses a bounded tool loop to inspect evidence, read supplied context, and propose mitigations. |
-| **Validation and revision** | Checks proposed patterns against attack and benign samples; returns rejection feedback to the Analyst. |
-| **Temporary protection** | Publishes expiring rules for the Shield Worker to enforce. |
-| **Visible decisions** | Streams captured requests, investigation traces, and active mitigations to the dashboard. |
-| **Fallback synthesis** | Derives and validates candidate patterns when model inference is unavailable. |
+| **8 threat categories** | Recognizes signatures across injection, traversal, SSRF, Log4Shell and scanning activity—full list below. |
+| **2 analysis paths** | A Workers AI Analyst with tool use and validation feedback, plus deterministic rule synthesis when AI is unavailable. |
+| **4-stage threat scoring** | Observe → monitor → challenge → block, backed by incident history, score decay and repeat-offender escalation. |
+| **Cross-IP campaign detection** | Correlates shared attack fingerprints across addresses to identify distributed activity. |
+| **6 Cloudflare services integrated** | Workers, Workers AI, Durable Objects, Queues, KV and D1 power execution, inference, state, background analysis, rules and audit history. |
+| **57 passing automated tests** | Covers Analyst behavior, Shield enforcement, rule synthesis and campaign policy with scripted models and mocked bindings. |
+| **Validation and revision** | Checks proposed patterns against attack and benign samples, returning rejection feedback for the Analyst to revise its proposal. |
+| **Temporary protection with visible decisions** | Publishes expiring Shield rules and streams captured evidence, analysis steps, validation results and edge-block events to the dashboard. |
+
+**Recognized threat categories:** SQL injection, cross-site scripting (XSS), path traversal, remote command execution patterns, server-side request forgery (SSRF), NoSQL injection, Log4Shell patterns and scanner signatures.
+
+*These describe implemented capabilities and classifier coverage, not guaranteed prevention. Scoring stages are policy states; Shield currently enforces blocking actions. The demo executes real SQL injection, while additional attack outcomes are simulated.*
 
 ## 🏗️ Architecture
 
